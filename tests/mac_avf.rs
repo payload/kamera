@@ -55,8 +55,26 @@ mod av_capture_session {
     }
 
     #[test]
+    fn stop_running() {
+        AVCaptureSession::new().stop_running();
+    }
+
+    #[test]
     fn begin_configuration() {
         AVCaptureSession::new().begin_configuration();
+    }
+
+    #[test]
+    fn add_input() {
+        let device = AVCaptureDevice::default_video_device();
+        let input = AVCaptureDeviceInput::from_device(&device).unwrap();
+        AVCaptureSession::new().add_input(&*input);
+    }
+
+    #[test]
+    fn add_output() {
+        let output = AVCaptureVideoDataOutput::new();
+        AVCaptureSession::new().add_output(&*output);
     }
 }
 
@@ -67,6 +85,34 @@ mod av_capture_device_input {
     fn from_device() {
         let device = AVCaptureDevice::default_video_device();
         let input = AVCaptureDeviceInput::from_device(&device);
+        println!("{input:?}");
         assert!(input.is_some());
+    }
+}
+
+mod av_capture_video_data_output {
+    use super::*;
+
+    #[test]
+    fn new() {
+        let output = AVCaptureVideoDataOutput::new();
+        println!("{output:?}");
+    }
+}
+
+mod scenario {
+    use super::*;
+
+    #[test]
+    fn running_capture_session() {
+        let device = AVCaptureDevice::default_video_device();
+        let input = AVCaptureDeviceInput::from_device(&device).unwrap();
+        let output = AVCaptureVideoDataOutput::new();
+        let session = AVCaptureSession::new();
+        session.add_input(&*input);
+        session.add_output(&*output);
+        session.start_running();
+        std::thread::sleep(std::time::Duration::from_secs(1)); // TODO wait for data
+        session.stop_running();
     }
 }
