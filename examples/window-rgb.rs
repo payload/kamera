@@ -18,13 +18,14 @@ fn main() {
     let camera = Camera::new_default_device();
     camera.start();
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+    event_loop.run(move |event, x, control_flow| {
+        *control_flow = ControlFlow::Poll;
 
         match event {
             Event::RedrawRequested(window_id) if window_id == window.id() => {
-                window.request_redraw();
-                let Some(frame) = camera.wait_for_frame() else { return };
+                let Some(frame) = camera.wait_for_frame() else {
+                    return
+                };
                 let (w, h) = frame.size_u32();
 
                 surface.resize(NonZeroU32::new(w).unwrap(), NonZeroU32::new(h).unwrap()).unwrap();
@@ -42,6 +43,9 @@ fn main() {
             }
             Event::LoopDestroyed => {
                 camera.stop();
+            }
+            Event::RedrawEventsCleared => {
+                window.request_redraw();
             }
             _ => {}
         }
