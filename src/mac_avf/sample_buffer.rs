@@ -29,7 +29,7 @@ impl std::fmt::Debug for SampleBuffer {
         let pixel_format = fourcc_to_string(fourcc);
         let width = dim.width;
         let height = dim.height;
-        let name = format!("SampleBuffer {width}x{height} {pixel_format}");
+        let name = format!("SampleBuffer {width}x{height} {pixel_format:?}");
 
         f.debug_struct(&name).field("inner", &self.inner).finish()
     }
@@ -114,7 +114,7 @@ pub fn fourcc_to_string(px_format_u32: u32) -> String {
     #[cfg(target_endian = "big")]
     let bytes = px_format_u32.to_be_bytes();
     #[cfg(target_endian = "little")]
-    let bytes = px_format_u32.to_le_bytes();
+    let bytes = px_format_u32.to_be_bytes();
 
     if bytes[0] == 0 {
         match px_format_u32 {

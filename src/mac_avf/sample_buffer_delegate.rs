@@ -40,12 +40,13 @@ declare_class!(
 
         #[method(captureOutput:didDropSampleBuffer:fromConnection:)]
         unsafe fn on_drop_sample_buffer(
-            &self,
+            &mut self,
             _capture_output: *const c_void,
-            _sample_buffer: CMSampleBufferRef,
+            sample_buffer: CMSampleBufferRef,
             _connection: *const c_void,
         ) {
-            println!("on_drop_sample_buffer")
+            println!("DROP SAMPLE BUFFER UNIMPLEMENTED");
+            self.set_slot(sample_buffer);
         }
     }
 

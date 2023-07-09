@@ -1,10 +1,10 @@
 use std::ffi::*;
 use std::ptr::null;
 
-use icrate::Foundation::NSObjectProtocol;
+use icrate::Foundation::*;
 use objc2::rc::Id;
 use objc2::runtime::NSObject;
-use objc2::{extern_class, msg_send, msg_send_id, mutability, ClassType};
+use objc2::*;
 
 use super::SampleBufferDelegate;
 
@@ -20,10 +20,6 @@ extern_class!(
 
 unsafe impl NSObjectProtocol for AVCaptureVideoDataOutput {}
 
-// object_struct!(AVCaptureVideoDataOutput);
-// impl IAVCaptureVideoDataOutput for AVCaptureVideoDataOutput {}
-// impl IAVCaptureOutput for AVCaptureVideoDataOutput {}
-
 impl AVCaptureVideoDataOutput {
     pub fn new() -> Id<Self> {
         unsafe { msg_send_id![Self::class(), new] }
@@ -34,6 +30,16 @@ impl AVCaptureVideoDataOutput {
         let queue = unsafe { dispatch_queue_create(name.as_ptr(), null()) };
         let _: () = unsafe { msg_send!(self, setSampleBufferDelegate: &*delegate queue: queue) };
         std::mem::forget(delegate);
+    }
+}
+
+extern_methods! {
+    unsafe impl AVCaptureVideoDataOutput {
+        #[method(setVideoSettings:)]
+        pub fn set_video_settings(&self, settings: &NSDictionary<NSString, NSNumber>);
+
+        // #[method(setSampleBufferDelegate:queue:)]
+        // fn set_sample_buffer_delegate(&mut self, delegate: &NSObject, queue: DispatchQueueT);
     }
 }
 
