@@ -1,24 +1,39 @@
-use std::{ffi::*, ptr::null};
+use std::ffi::*;
 
-use objc::*;
-use objc_foundation::*;
-use objc_id::*;
+use icrate::Foundation::NSObjectProtocol;
+use objc2::rc::Id;
+use objc2::runtime::NSObject;
+use objc2::{extern_class, msg_send_id, mutability, ClassType};
 
-use super::SampleBufferDelegate;
+// use super::SampleBufferDelegate;
 
-object_struct!(AVCaptureVideoDataOutput);
-impl IAVCaptureVideoDataOutput for AVCaptureVideoDataOutput {}
-impl IAVCaptureOutput for AVCaptureVideoDataOutput {}
+extern_class!(
+    #[derive(PartialEq, Eq, Hash, Debug)]
+    pub struct AVCaptureVideoDataOutput;
 
-pub trait IAVCaptureVideoDataOutput: IAVCaptureOutput {
-    fn set_sample_buffer_delegate(&self, delegate: Id<SampleBufferDelegate, Shared>) {
-        let name = std::ffi::CString::new("video input").unwrap();
-        let queue = unsafe { dispatch_queue_create(name.as_ptr(), null()) };
-        unsafe { msg_send!(self, setSampleBufferDelegate: delegate queue: queue) }
+    unsafe impl ClassType for AVCaptureVideoDataOutput {
+        type Super = NSObject;
+        type Mutability = mutability::InteriorMutable;
     }
-}
+);
 
-pub trait IAVCaptureOutput: INSObject {}
+unsafe impl NSObjectProtocol for AVCaptureVideoDataOutput {}
+
+// object_struct!(AVCaptureVideoDataOutput);
+// impl IAVCaptureVideoDataOutput for AVCaptureVideoDataOutput {}
+// impl IAVCaptureOutput for AVCaptureVideoDataOutput {}
+
+impl AVCaptureVideoDataOutput {
+    pub fn new() -> Id<Self> {
+        unsafe { msg_send_id![Self::class(), new] }
+    }
+
+    // pub fn set_sample_buffer_delegate(&self, delegate: Id<SampleBufferDelegate, Shared>) {
+    //     let name = std::ffi::CString::new("video input").unwrap();
+    //     let queue = unsafe { dispatch_queue_create(name.as_ptr(), null()) };
+    //     unsafe { msg_send!(self, setSampleBufferDelegate: delegate queue: queue) }
+    // }
+}
 
 // libdispatch is loaded differently on MacOS and iOS. Have a look in https://docs.rs/dispatch
 // We don't care about the exact types.
@@ -29,3 +44,9 @@ extern "C" {
 }
 
 pub type DispatchQueueT = *mut NSObject;
+
+#[test]
+fn new() {
+    let output = AVCaptureVideoDataOutput::new();
+    println!("{output:?}");
+}

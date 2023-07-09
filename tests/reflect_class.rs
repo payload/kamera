@@ -1,11 +1,8 @@
 use kamera::mac_avf::*;
 
-use objc::{
-    runtime::{Object, Sel},
-    Encode, Encoding,
-};
+use objc2::runtime::Class;
 
-fn reflect_class(cls: &objc::runtime::Class) -> Result<String, std::fmt::Error> {
+fn reflect_class(cls: &Class) -> Result<String, std::fmt::Error> {
     use std::fmt::Write;
     let mut reflection = String::new();
     let s = &mut reflection;
@@ -16,22 +13,19 @@ fn reflect_class(cls: &objc::runtime::Class) -> Result<String, std::fmt::Error> 
         writeln!(s, "var {name}: {var_type:?}")?;
     }
 
-    let obj_encoding = <&Object>::encode();
-    let sel_encoding = Sel::encode();
-
     for method in cls.instance_methods().iter() {
-        let name = method.name();
+        let name = method.name().to_string();
         let ret = method.return_type();
         let args = (0..method.arguments_count())
             .filter_map(|i| method.argument_type(i))
             .collect::<Vec<_>>();
-        let simple_method = args.len() == 2 && args[0] == obj_encoding && args[1] == sel_encoding;
+        let simple_method = args.len() == 2 && args[0].eq("@") && args[1].eq(":"); // [Object, Sel]
         let known_ret = encoding_to_rust_typename(&ret);
 
         let ret = if !known_ret.is_empty() {
             known_ret.into()
         } else {
-            ret.as_str().to_string()
+            ret.to_string()
         };
 
         let args = if simple_method {
@@ -40,14 +34,14 @@ fn reflect_class(cls: &objc::runtime::Class) -> Result<String, std::fmt::Error> 
             format!("{args:?}")
         };
 
-        writeln!(s, "fn {name:?}({args}) -> {ret}")?;
+        writeln!(s, "fn {name}({args}) -> {ret}")?;
     }
 
     Ok(reflection)
 }
 
-fn encoding_to_rust_typename(enc: &Encoding) -> &'static str {
-    match enc.as_str() {
+fn encoding_to_rust_typename(enc: &str) -> &'static str {
+    match enc {
         "c" => "i8",
         "s" => "i16",
         "i" => "i32",
