@@ -2,13 +2,15 @@
 name = "kamera"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = [ "Gilbert Röhrbein" ]
+keywords = ["camera", "webcam", "capture", "cross-platform"]
+license = "MIT/Apache-2.0"
+description = "Camera API with a reduced feature set for basic use cases and learning"
 
 [dependencies]
 icrate = { version = "0.0.3", features = ["Foundation", "Foundation_NSArray", "Foundation_NSNumber", "Foundation_NSMutableDictionary"] }
 objc2 = { version = "0.4.0", features = ["malloc"] }
 
 [dev-dependencies]
-softbuffer = "*"
-winit = "*"
+softbuffer = "0.3.0"
+winit = "0.27.5"
