@@ -7,7 +7,7 @@ keywords = ["camera", "webcam", "capture", "cross-platform"]
 license = "MIT/Apache-2.0"
 description = "Camera API with a reduced feature set for basic use cases and learning"
 
-[dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 icrate = { version = "0.0.3", features = ["Foundation", "Foundation_NSArray", "Foundation_NSNumber", "Foundation_NSMutableDictionary"] }
 objc2 = { version = "0.4.0", features = ["malloc"] }
 
