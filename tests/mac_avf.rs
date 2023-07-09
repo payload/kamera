@@ -6,21 +6,16 @@ fn running_capture_session() {
     let input = AVCaptureDeviceInput::from_device(&device).unwrap();
     let output = AVCaptureVideoDataOutput::new();
     let delegate = SampleBufferDelegate::new();
-    // let slot = delegate.clone_slot();
-    // let (lock, cond) = &*slot;
+    let slot = delegate.slot();
     let session = AVCaptureSession::new();
-    output.set_sample_buffer_delegate(delegate.clone());
+    output.set_sample_buffer_delegate(delegate);
     session.add_input(&*input);
     session.add_output(&*output);
     session.start_running();
 
-    // {
-    //     let mut guard = lock.lock().unwrap();
-    //     while guard.frame_counter < 3 {
-    //         guard = cond.wait(guard).unwrap();
-    //     }
-    // }
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    slot.wait_for_sample();
+    slot.wait_for_sample();
+    slot.wait_for_sample();
 
     session.stop_running();
 }
