@@ -2,14 +2,32 @@
 name = "kamera"
 version = "0.1.0"
 edition = "2021"
-authors = [ "Gilbert Röhrbein" ]
+authors = ["Gilbert Röhrbein"]
 keywords = ["camera", "webcam", "capture", "cross-platform"]
 license = "MIT/Apache-2.0"
 description = "Camera API with a reduced feature set for basic use cases and learning"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-icrate = { version = "0.0.3", features = ["Foundation", "Foundation_NSArray", "Foundation_NSNumber", "Foundation_NSMutableDictionary"] }
+icrate = { version = "0.0.3", features = [
+    "Foundation",
+    "Foundation_NSArray",
+    "Foundation_NSNumber",
+    "Foundation_NSMutableDictionary",
+] }
 objc2 = { version = "0.4.0", features = ["malloc"] }
+
+[target.'cfg(target_os="windows")'.dependencies]
+windows = { version = "0.43", features = [
+    "Win32_Media_MediaFoundation",
+    "Win32_System_Com",
+    "Win32_Foundation",
+    "Win32_Media_DirectShow",
+    "Win32_Media",
+    "Win32",
+    "Win32_Media_KernelStreaming",
+    "Win32_System_Com_StructuredStorage",
+    "implement",
+] }
 
 [dev-dependencies]
 softbuffer = "0.3.0"
