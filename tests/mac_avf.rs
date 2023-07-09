@@ -109,12 +109,16 @@ mod scenario {
         let input = AVCaptureDeviceInput::from_device(&device).unwrap();
         let output = AVCaptureVideoDataOutput::new();
         let delegate = SampleBufferDelegate::new().share();
+        let slot = delegate.clone_slot();
+        println!("1 {:?}", slot.read().unwrap());
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate.clone());
+        println!("2 {:?}", slot.read().unwrap());
         session.add_input(&*input);
         session.add_output(&*output);
         session.start_running();
         std::thread::sleep(std::time::Duration::from_millis(100)); // TODO wait for data
         session.stop_running();
+        println!("3 {:?}", slot.read().unwrap());
     }
 }

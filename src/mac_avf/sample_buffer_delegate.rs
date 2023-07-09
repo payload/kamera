@@ -1,12 +1,12 @@
 use std::ffi::c_void;
-use std::sync::Once;
+use std::ptr::null_mut;
+use std::sync::{Arc, Once, RwLock};
 
 use objc::declare::ClassDecl;
 use objc::runtime::*;
 use objc::*;
 use objc_foundation::*;
-
-use crate::mac_avf::AVCaptureVideoDataOutput;
+use objc_id::*;
 
 pub enum SampleBufferDelegate {}
 unsafe impl Message for SampleBufferDelegate {}
@@ -41,18 +41,58 @@ impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
     }
 }
 
+// TODO Protocol::protocols
+
+pub type Slot = RwLock<Foo>;
+
 impl SampleBufferDelegate {
-    fn number(&self) -> u32 {
-        unsafe {
+    pub fn new() -> Id<Self> {
+        let mut this: Id<Self> = INSObject::new();
+        let slot: Box<Arc<Slot>> = Box::new(Arc::new(RwLock::new(Foo::A)));
+        this.set_slot(slot);
+        this
+    }
+
+    fn register_ivars(decl: &mut ClassDecl) {
+        decl.add_ivar::<*mut c_void>("slot");
+    }
+
+    pub fn clone_slot(&self) -> Arc<Slot> {
+        let ptr = unsafe {
             let obj = &*(self as *const _ as *const Object);
-            *obj.get_ivar("_number")
+            obj.get_ivar::<*mut c_void>("slot")
+        };
+        let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
+        let clone = *slot.clone();
+        let _ = Box::into_raw(slot);
+        clone
+    }
+
+    fn set_slot_value(&mut self, value: Foo) {
+        let ptr = *self.get_mut_slot();
+        let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
+        *slot.write().unwrap() = value;
+        let _slot = Box::into_raw(slot);
+    }
+
+    fn set_slot(&mut self, slot: Box<Arc<Slot>>) {
+        self.release_slot();
+        let ptr = Box::into_raw(slot).cast();
+        *self.get_mut_slot() = ptr;
+    }
+
+    fn get_mut_slot(&mut self) -> &mut *mut c_void {
+        unsafe {
+            let obj = &mut *(self as *mut _ as *mut Object);
+            obj.get_mut_ivar::<*mut c_void>("slot")
         }
     }
 
-    fn set_number(&mut self, number: u32) {
-        unsafe {
-            let obj = &mut *(self as *mut _ as *mut Object);
-            obj.set_ivar("_number", number);
+    fn release_slot(&mut self) {
+        let ptr = *self.get_mut_slot();
+        if !ptr.is_null() {
+            let _slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
+            *self.get_mut_slot() = null_mut();
         }
     }
 }
@@ -65,6 +105,24 @@ impl INSObject for SampleBufferDelegate {
             let superclass = NSObject::class();
             let mut decl = ClassDecl::new("SampleBufferDelegate", superclass).unwrap();
 
+            Self::register_ivars(&mut decl);
+
+            unsafe {
+                decl.add_method(
+                    sel!(captureOutput:didOutputSampleBuffer:fromConnection:),
+                    on_output_sample_buffer as extern "C" fn(&mut Object, Sel, _, _, _),
+                )
+            };
+
+            unsafe {
+                decl.add_method(
+                    sel!(captureOutput:didDropSampleBuffer:fromConnection:),
+                    on_drop_sample_buffer as extern "C" fn(&mut Object, Sel, _, _, _),
+                )
+            };
+
+            decl.register();
+
             extern "C" fn on_output_sample_buffer(
                 this: &mut Object,
                 _cmd: Sel,
@@ -72,7 +130,7 @@ impl INSObject for SampleBufferDelegate {
                 sample_buffer: *const c_void,
                 connection: *const c_void,
             ) {
-                let that: *const SampleBufferDelegate = unsafe { std::mem::transmute(this) };
+                let that: *const SampleBufferDelegate = (this as *mut Object).cast();
                 let that = unsafe { that.as_ref().unwrap() };
                 SampleBufferDelegate::on_output_sample_buffer(
                     that,
@@ -81,13 +139,6 @@ impl INSObject for SampleBufferDelegate {
                     connection,
                 )
             }
-
-            unsafe {
-                decl.add_method(
-                    sel!(captureOutput:didOutputSampleBuffer:fromConnection:),
-                    on_output_sample_buffer as extern "C" fn(&mut Object, Sel, _, _, _),
-                )
-            };
 
             extern "C" fn on_drop_sample_buffer(
                 this: &mut Object,
@@ -98,15 +149,6 @@ impl INSObject for SampleBufferDelegate {
             ) {
                 println!("DROP {:?}", this as *const Object);
             }
-
-            unsafe {
-                decl.add_method(
-                    sel!(captureOutput:didDropSampleBuffer:fromConnection:),
-                    on_drop_sample_buffer as extern "C" fn(&mut Object, Sel, _, _, _),
-                )
-            };
-
-            decl.register();
         });
 
         Class::get("SampleBufferDelegate").unwrap()
@@ -114,7 +156,22 @@ impl INSObject for SampleBufferDelegate {
 }
 
 #[test]
-
 fn main() {
-    SampleBufferDelegate::new();
+    println!();
+    let mut delegate = SampleBufferDelegate::new();
+    let slot = delegate.clone_slot();
+    if let Ok(v) = slot.read() {
+        println!("{v:?}");
+    }
+    delegate.set_slot_value(Foo::B);
+    if let Ok(v) = slot.read() {
+        println!("{v:?}");
+    }
+    delegate.release_slot();
+}
+
+#[derive(Debug)]
+pub enum Foo {
+    A,
+    B,
 }
