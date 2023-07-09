@@ -8,9 +8,7 @@ pub struct SampleBuffer {
 
 impl SampleBuffer {
     pub fn new(sample_buffer: CMSampleBufferRef) -> Self {
-        Self {
-            inner: unsafe { CFRetain(sample_buffer.cast()).cast_mut().cast() },
-        }
+        Self { inner: unsafe { CFRetain(sample_buffer.cast()).cast_mut().cast() } }
     }
 }
 
@@ -170,13 +168,7 @@ impl<'a> Pixels<'a> {
 
         let data = unsafe { std::slice::from_raw_parts(plane_address, plane_sizes) };
         let u32 = unsafe { std::slice::from_raw_parts(plane_address as *const u32, plane_sizes) };
-        Self {
-            ibuf,
-            data,
-            u32,
-            width,
-            height,
-        }
+        Self { ibuf, data, u32, width, height }
     }
 }
 

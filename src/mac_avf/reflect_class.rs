@@ -22,17 +22,9 @@ fn reflect_class(cls: &Class) -> Result<String, std::fmt::Error> {
         let simple_method = args.len() == 2 && args[0].eq("@") && args[1].eq(":"); // [Object, Sel]
         let known_ret = encoding_to_rust_typename(&ret);
 
-        let ret = if !known_ret.is_empty() {
-            known_ret.into()
-        } else {
-            ret.to_string()
-        };
+        let ret = if !known_ret.is_empty() { known_ret.into() } else { ret.to_string() };
 
-        let args = if simple_method {
-            "&self".into()
-        } else {
-            format!("{args:?}")
-        };
+        let args = if simple_method { "&self".into() } else { format!("{args:?}") };
 
         writeln!(s, "fn {name}({args}) -> {ret}")?;
     }

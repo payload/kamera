@@ -104,9 +104,7 @@ impl Slot {
         } else {
             sample
         };
-        let old_sample = self
-            .sample
-            .swap(sample, std::sync::atomic::Ordering::Relaxed);
+        let old_sample = self.sample.swap(sample, std::sync::atomic::Ordering::Relaxed);
         if !old_sample.is_null() {
             unsafe { super::CFRelease(old_sample.cast()) };
         }

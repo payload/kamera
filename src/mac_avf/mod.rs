@@ -3,13 +3,13 @@ mod av_capture_device_format;
 mod av_capture_device_input;
 mod av_capture_session;
 mod av_capture_video_data_output;
-mod sample_buffer;
-mod sample_buffer_delegate;
-mod video_output_settings;
-#[cfg(test)]
-mod test_scenarios;
 #[cfg(test)]
 mod reflect_class;
+mod sample_buffer;
+mod sample_buffer_delegate;
+#[cfg(test)]
+mod test_scenarios;
+mod video_output_settings;
 
 pub use objc2::*;
 
