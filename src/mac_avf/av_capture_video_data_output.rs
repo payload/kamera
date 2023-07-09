@@ -1,11 +1,12 @@
 use std::ffi::*;
+use std::ptr::null;
 
 use icrate::Foundation::NSObjectProtocol;
 use objc2::rc::Id;
 use objc2::runtime::NSObject;
-use objc2::{extern_class, msg_send_id, mutability, ClassType};
+use objc2::{extern_class, msg_send, msg_send_id, mutability, ClassType};
 
-// use super::SampleBufferDelegate;
+use super::SampleBufferDelegate;
 
 extern_class!(
     #[derive(PartialEq, Eq, Hash, Debug)]
@@ -28,11 +29,12 @@ impl AVCaptureVideoDataOutput {
         unsafe { msg_send_id![Self::class(), new] }
     }
 
-    // pub fn set_sample_buffer_delegate(&self, delegate: Id<SampleBufferDelegate, Shared>) {
-    //     let name = std::ffi::CString::new("video input").unwrap();
-    //     let queue = unsafe { dispatch_queue_create(name.as_ptr(), null()) };
-    //     unsafe { msg_send!(self, setSampleBufferDelegate: delegate queue: queue) }
-    // }
+    pub fn set_sample_buffer_delegate(&self, delegate: Id<SampleBufferDelegate>) {
+        let name = std::ffi::CString::new("video input").unwrap();
+        let queue = unsafe { dispatch_queue_create(name.as_ptr(), null()) };
+        let _: () = unsafe { msg_send!(self, setSampleBufferDelegate: &*delegate queue: queue) };
+        std::mem::forget(delegate);
+    }
 }
 
 // libdispatch is loaded differently on MacOS and iOS. Have a look in https://docs.rs/dispatch

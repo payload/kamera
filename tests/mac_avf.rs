@@ -5,11 +5,11 @@ fn running_capture_session() {
     let device = AVCaptureDevice::default_video_device();
     let input = AVCaptureDeviceInput::from_device(&device).unwrap();
     let output = AVCaptureVideoDataOutput::new();
-    // let delegate = SampleBufferDelegate::new().share();
+    let delegate = SampleBufferDelegate::new();
     // let slot = delegate.clone_slot();
     // let (lock, cond) = &*slot;
     let session = AVCaptureSession::new();
-    // output.set_sample_buffer_delegate(delegate.clone());
+    output.set_sample_buffer_delegate(delegate.clone());
     session.add_input(&*input);
     session.add_output(&*output);
     session.start_running();

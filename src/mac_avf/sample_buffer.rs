@@ -1,5 +1,7 @@
 use std::ffi::c_void;
 
+use objc2::{Encode, Encoding, RefEncode};
+
 pub struct SampleBuffer {
     inner: CMSampleBufferRef,
 }
@@ -84,6 +86,13 @@ pub struct CMSampleBuffer {
     _priv: [u8; 0],
 }
 pub type CMSampleBufferRef = *mut CMSampleBuffer;
+
+unsafe impl Encode for CMSampleBuffer {
+    const ENCODING: Encoding = Encoding::Struct("opaqueCMSampleBuffer", &[]);
+}
+unsafe impl RefEncode for CMSampleBuffer {
+    const ENCODING_REF: Encoding = Encoding::Pointer(&Self::ENCODING);
+}
 
 #[repr(C)]
 pub struct CMFormatDescription {
