@@ -110,15 +110,20 @@ mod scenario {
         let output = AVCaptureVideoDataOutput::new();
         let delegate = SampleBufferDelegate::new().share();
         let slot = delegate.clone_slot();
-        println!("1 {:?}", slot.read().unwrap());
+        let (lock, cond) = &*slot;
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate.clone());
-        println!("2 {:?}", slot.read().unwrap());
         session.add_input(&*input);
         session.add_output(&*output);
         session.start_running();
-        std::thread::sleep(std::time::Duration::from_millis(100)); // TODO wait for data
+
+        {
+            let mut guard = lock.lock().unwrap();
+            while guard.frame_counter < 3 {
+                guard = cond.wait(guard).unwrap();
+            }
+        }
+
         session.stop_running();
-        println!("3 {:?}", slot.read().unwrap());
     }
 }

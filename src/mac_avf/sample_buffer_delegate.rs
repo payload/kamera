@@ -1,12 +1,16 @@
 use std::ffi::c_void;
 use std::ptr::null_mut;
-use std::sync::{Arc, Once, RwLock};
+use std::sync::{Arc, Condvar, Mutex, Once};
 
 use objc::declare::ClassDecl;
 use objc::runtime::*;
 use objc::*;
 use objc_foundation::*;
 use objc_id::*;
+
+use crate::mac_avf::SampleBuffer;
+
+use super::CMSampleBufferRef;
 
 pub enum SampleBufferDelegate {}
 unsafe impl Message for SampleBufferDelegate {}
@@ -16,7 +20,7 @@ trait AVCaptureVideoDataOutputSampleBufferDelegate {
     fn on_output_sample_buffer(
         &mut self,
         capture_output: *const c_void,
-        sample_buffer: *const c_void,
+        sample_buffer: CMSampleBufferRef,
         connection: *const c_void,
     );
 
@@ -27,17 +31,16 @@ impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
     fn on_output_sample_buffer(
         &mut self,
         capture_output: *const c_void,
-        sample_buffer: *const c_void,
+        sample_buffer: CMSampleBufferRef,
         connection: *const c_void,
     ) {
-        println!(
-            "OUTPUT {:?} {:?} {:?} {:?}",
-            self as *const _, capture_output, sample_buffer, connection
-        );
         let state = self.get_slot_value();
         self.set_slot_value(State {
             frame_counter: state.frame_counter + 1,
         });
+
+        let sample_buffer = SampleBuffer::new(sample_buffer);
+        println!("{:?}", sample_buffer);
     }
 
     fn on_drop_sample_buffer(&self, capture_output: (), sample_buffer: (), connection: ()) {
@@ -47,12 +50,15 @@ impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
 
 // TODO Protocol::protocols
 
-pub type Slot = RwLock<State>;
+pub type Slot = (Mutex<State>, Condvar);
 
 impl SampleBufferDelegate {
     pub fn new() -> Id<Self> {
         let mut this: Id<Self> = INSObject::new();
-        let slot: Box<Arc<Slot>> = Box::new(Arc::new(RwLock::new(State { frame_counter: 0 })));
+        let slot: Box<Arc<Slot>> = Box::new(Arc::new((
+            Mutex::new(State { frame_counter: 0 }),
+            Condvar::new(),
+        )));
         this.set_slot(slot);
         this
     }
@@ -75,7 +81,8 @@ impl SampleBufferDelegate {
     fn set_slot_value(&mut self, value: State) {
         let ptr = *self.get_mut_slot();
         let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
-        *slot.write().unwrap() = value;
+        *slot.0.lock().unwrap() = value;
+        slot.1.notify_all();
         let _slot = Box::into_raw(slot);
     }
 
@@ -85,7 +92,7 @@ impl SampleBufferDelegate {
             obj.get_ivar::<*mut c_void>("slot")
         };
         let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
-        let value = slot.read().unwrap().clone();
+        let value = slot.0.lock().unwrap().clone();
         let _slot = Box::into_raw(slot);
         value
     }
@@ -142,7 +149,7 @@ impl INSObject for SampleBufferDelegate {
                 this: &mut Object,
                 _cmd: Sel,
                 capture_output: *const c_void,
-                sample_buffer: *const c_void,
+                sample_buffer: *mut c_void,
                 connection: *const c_void,
             ) {
                 let that: *mut SampleBufferDelegate = (this as *mut Object).cast();
@@ -150,7 +157,7 @@ impl INSObject for SampleBufferDelegate {
                 SampleBufferDelegate::on_output_sample_buffer(
                     that,
                     capture_output,
-                    sample_buffer,
+                    sample_buffer.cast(),
                     connection,
                 )
             }
@@ -175,11 +182,11 @@ fn main() {
     println!();
     let mut delegate = SampleBufferDelegate::new();
     let slot = delegate.clone_slot();
-    if let Ok(v) = slot.read() {
+    if let Ok(v) = slot.0.lock() {
         println!("{v:?}");
     }
     delegate.set_slot_value(State { frame_counter: 2 });
-    if let Ok(v) = slot.read() {
+    if let Ok(v) = slot.0.lock() {
         println!("{v:?}");
     }
     delegate.release_slot();
@@ -187,5 +194,5 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct State {
-    frame_counter: usize,
+    pub frame_counter: usize,
 }
