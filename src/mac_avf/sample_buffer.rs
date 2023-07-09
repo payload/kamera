@@ -10,6 +10,13 @@ impl SampleBuffer {
     pub fn new(sample_buffer: CMSampleBufferRef) -> Self {
         Self { inner: unsafe { CFRetain(sample_buffer.cast()).cast_mut().cast() } }
     }
+
+    pub fn size_usize(&self) -> (usize, usize) {
+        let ibuf = unsafe { CMSampleBufferGetImageBuffer(self.inner) };
+        let width = unsafe { CVPixelBufferGetWidth(ibuf) };
+        let height = unsafe { CVPixelBufferGetHeight(ibuf) };
+        (width, height)
+    }
 }
 
 impl Drop for SampleBuffer {

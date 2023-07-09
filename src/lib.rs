@@ -1,3 +1,6 @@
+mod camera;
+pub use camera::*;
+
 #[cfg(target_os = "macos")]
 pub mod mac_avf;
 

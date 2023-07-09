@@ -5,8 +5,8 @@ use windows::{
     Win32::{Media::MediaFoundation::*, System::Com::*},
 };
 
-use super::media_type::MediaType;
 use super::attributes::{mf_create_attributes, mf_get_string};
+use super::media_type::MediaType;
 
 #[derive(Clone, Debug)]
 pub struct Device {
