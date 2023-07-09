@@ -10,6 +10,7 @@ pub struct Camera {
     slot: Arc<Slot>,
 }
 
+#[derive(Debug)]
 pub struct Frame {
     sample: SampleBuffer,
 }

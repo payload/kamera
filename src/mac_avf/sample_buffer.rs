@@ -174,7 +174,8 @@ impl<'a> Pixels<'a> {
         }
 
         let data = unsafe { std::slice::from_raw_parts(plane_address, plane_sizes) };
-        let u32 = unsafe { std::slice::from_raw_parts(plane_address as *const u32, plane_sizes) };
+        let (a, u32, b) = unsafe { data.align_to() };
+        debug_assert!(a.is_empty() && b.is_empty());
         Self { ibuf, data, u32, width, height }
     }
 }

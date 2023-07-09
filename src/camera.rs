@@ -8,6 +8,7 @@ pub struct Camera {
     inner: backend::Camera,
 }
 
+#[derive(Debug)]
 pub struct Frame {
     inner: backend::Frame,
 }
