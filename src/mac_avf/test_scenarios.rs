@@ -1,4 +1,4 @@
-use kamera::mac_avf::*;
+use super::*;
 
 const TEST_FRAMES: usize = 3;
 

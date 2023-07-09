@@ -6,6 +6,10 @@ mod av_capture_video_data_output;
 mod sample_buffer;
 mod sample_buffer_delegate;
 mod video_output_settings;
+#[cfg(test)]
+mod test_scenarios;
+#[cfg(test)]
+mod reflect_class;
 
 pub use objc2::*;
 
