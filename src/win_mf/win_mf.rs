@@ -78,6 +78,15 @@ impl Camera {
         Self { engine, frame: None }
     }
 
+    pub fn new_default_device() -> Self {
+        let devices = Device::enum_devices();
+        if let Some(device) = devices.first() {
+            Self::from_device(device)
+        } else {
+            Self::new()
+        }
+    }
+
     pub fn device_name(&self) -> String {
         self.engine.device_name()
     }
@@ -90,7 +99,7 @@ impl Camera {
         self.engine.set_media_type(media_type).unwrap();
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&self) {
         self.engine.start_preview().unwrap();
     }
 
@@ -98,7 +107,7 @@ impl Camera {
         self.engine.just_start_preview().unwrap();
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&self) {
         self.engine.stop_preview().unwrap();
     }
 
@@ -116,6 +125,11 @@ impl Camera {
         }
 
         self.frame.as_ref()
+    }
+
+    pub fn wait_for_next_frame(&self) -> Option<CameraFrame> {
+        // TODO smash together with the other frame functions
+        self.engine.recv_sample().map(|sample| CameraFrame { sample })
     }
 }
 
@@ -148,6 +162,10 @@ impl CameraFrame {
 
     pub fn height(&self) -> u32 {
         self.sample.height
+    }
+
+    pub fn size_u32(&self) -> (u32, u32) {
+        (self.sample.width, self.sample.height)
     }
 }
 
@@ -248,9 +266,9 @@ impl CaptureEngine {
         self.device.clone().map(|d| d.name()).unwrap_or_default()
     }
 
-    fn start_preview(&mut self) -> Result<()> {
+    fn start_preview(&self) -> Result<()> {
         let sample_media_type = capture_engine_start_preview(&self.engine, &self.sample_cb)?;
-        self.sample_media_type = Some(sample_media_type);
+        // self.sample_media_type = Some(sample_media_type);
         self.wait_for_event(CaptureEngineEvent::PreviewStarted);
         // PreviewStarted could be followed by Error before first Sample comes
         // First sample takes for example 250 ms but first Error could come alread 3 ms after PreviewStarted.
@@ -262,7 +280,7 @@ impl CaptureEngine {
         unsafe { self.engine.StartPreview() }
     }
 
-    fn stop_preview(&mut self) -> Result<()> {
+    fn stop_preview(&self) -> Result<()> {
         capture_engine_stop_preview(&self.engine)?;
         self.wait_for_event(CaptureEngineEvent::PreviewStopped);
         Ok(())
@@ -294,7 +312,7 @@ impl CaptureEngine {
     }
 
     fn try_recv_sample(&self) -> Option<LockedBuffer> {
-        if let Some(mt) = &self.sample_media_type {
+        if let Some(mt) = capture_engine_sink_get_media_type(&self.engine).ok() {
             let width = mt.frame_width();
             let height = mt.frame_height();
 
@@ -315,7 +333,7 @@ impl CaptureEngine {
     }
 
     fn recv_sample(&self) -> Option<LockedBuffer> {
-        let Some(mt) = &self.sample_media_type else {
+        let Some(mt) = capture_engine_sink_get_media_type(&self.engine).ok() else {
             return None;
         };
         let width = mt.frame_width();
@@ -402,6 +420,12 @@ fn capture_engine_start_preview(
     }
 }
 
+fn capture_engine_sink_get_media_type(capture_engine: &IMFCaptureEngine) -> Result<MediaType> {
+    Ok(MediaType(unsafe {
+        capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?.GetOutputMediaType(0)?
+    }))
+}
+
 fn capture_engine_stop_preview(capture_engine: &IMFCaptureEngine) -> Result<()> {
     unsafe { capture_engine.StopPreview() }
 }
@@ -414,7 +438,7 @@ fn sample_to_locked_buffer(sample: &IMFSample, width: u32, height: u32) -> Resul
         let mut scanline0 = std::ptr::null_mut();
         let mut pitch = 0;
         let mut buffer_start = std::ptr::null_mut();
-        let mut buffer_length = 0;
+        let mut buffer_length: u32 = 0;
         mf2d_buffer.Lock2DSize(
             MF2DBuffer_LockFlags_Read,
             &mut scanline0,
@@ -450,7 +474,34 @@ impl LockedBuffer {
 impl Drop for LockedBuffer {
     fn drop(&mut self) {
         unsafe { self.buffer.Unlock2D().expect("Unlock2D") };
-        println!("LockedBuffer.drop done");
+    }
+}
+
+impl Clone for LockedBuffer {
+    fn clone(&self) -> Self {
+        unsafe {
+            let mut scanline0 = std::ptr::null_mut();
+            let mut pitch = 0;
+            let mut buffer_start = std::ptr::null_mut();
+            let mut buffer_length = 0;
+            self.buffer
+                .Lock2DSize(
+                    MF2DBuffer_LockFlags_Read,
+                    &mut scanline0,
+                    &mut pitch,
+                    &mut buffer_start,
+                    &mut buffer_length,
+                )
+                .unwrap();
+        }
+
+        Self {
+            buffer: self.buffer.clone(),
+            width: self.width.clone(),
+            height: self.height.clone(),
+            scanline0: self.scanline0.clone(),
+            len: self.len.clone(),
+        }
     }
 }
 
