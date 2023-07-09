@@ -20,6 +20,12 @@ impl Drop for SampleBuffer {
     }
 }
 
+impl SampleBuffer {
+    pub fn pixels(&self) -> Pixels {
+        Pixels::new(self)
+    }
+}
+
 impl std::fmt::Debug for SampleBuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let sbuf = self.inner;
@@ -111,13 +117,10 @@ pub type CMFormatDescriptionRef = *mut CMFormatDescription;
 /// <https://softron.zendesk.com/hc/en-us/articles/207695697-List-of-FourCC-codes-for-video-codecs>
 /// <http://abcavi.kibi.ru/fourcc.php>
 pub fn fourcc_to_string(px_format_u32: u32) -> String {
-    #[cfg(target_endian = "big")]
-    let bytes = px_format_u32.to_be_bytes();
-    #[cfg(target_endian = "little")]
-    let bytes = px_format_u32.to_be_bytes();
+    let bytes = px_format_u32.to_ne_bytes();
 
-    if bytes[0] == 0 {
-        match px_format_u32 {
+    if &bytes[1..4] == &[0, 0, 0] {
+        match bytes[0] {
             32 => "ARGB",
             24 => "RGB ",
             _ => return format!("0x{px_format_u32:08X}"),
@@ -125,5 +128,60 @@ pub fn fourcc_to_string(px_format_u32: u32) -> String {
         .into()
     } else {
         String::from_utf8_lossy(&bytes).to_string()
+    }
+}
+
+/// Holds the locked pixel data of a frame and unlocks upon drop.
+pub struct Pixels<'a> {
+    pub ibuf: CVImageBufferRef,
+    pub data: &'a [u8],
+    pub u32: &'a [u32],
+    pub width: usize,
+    pub height: usize,
+}
+
+impl<'a> Pixels<'a> {
+    fn new(sample: &'a SampleBuffer) -> Self {
+        let ibuf = unsafe { CMSampleBufferGetImageBuffer(sample.inner) };
+        debug_assert!(0 == unsafe { CVPixelBufferLockBaseAddress(ibuf, 1) });
+        let _address = unsafe { CVPixelBufferGetBaseAddress(ibuf) };
+        let stride = unsafe { CVPixelBufferGetBytesPerRow(ibuf) };
+        let width = unsafe { CVPixelBufferGetWidth(ibuf) };
+        let height = unsafe { CVPixelBufferGetHeight(ibuf) };
+        let is_planar = unsafe { CVPixelBufferIsPlanar(ibuf) };
+        let plane_count = unsafe { CVPixelBufferGetPlaneCount(ibuf) };
+        let _data_size = unsafe { CVPixelBufferGetDataSize(ibuf) };
+        let _fourcc = unsafe { CVPixelBufferGetPixelFormatType(ibuf) };
+        let plane_address = unsafe { CVPixelBufferGetBaseAddressOfPlane(ibuf, 0) };
+        let mut plane_sizes = 0;
+
+        // println!("pixels {:?}", (_address, stride, width, height, is_planar, plane_count, _data_size, fourcc_to_string(_fourcc)));
+        if is_planar {
+            for index in 0..plane_count {
+                let _plane_address = unsafe { CVPixelBufferGetBaseAddressOfPlane(ibuf, index) };
+                let plane_stride = unsafe { CVPixelBufferGetBytesPerRowOfPlane(ibuf, index) };
+                let plane_height = unsafe { CVPixelBufferGetHeightOfPlane(ibuf, index) };
+                // println!("        {:?}", (plane_address, plane_stride, plane_height));
+                plane_sizes += plane_stride * plane_height;
+            }
+        } else {
+            plane_sizes += stride * height;
+        }
+
+        let data = unsafe { std::slice::from_raw_parts(plane_address, plane_sizes) };
+        let u32 = unsafe { std::slice::from_raw_parts(plane_address as *const u32, plane_sizes) };
+        Self {
+            ibuf,
+            data,
+            u32,
+            width,
+            height,
+        }
+    }
+}
+
+impl Drop for Pixels<'_> {
+    fn drop(&mut self) {
+        debug_assert!(0 == unsafe { CVPixelBufferUnlockBaseAddress(self.ibuf, 1) });
     }
 }

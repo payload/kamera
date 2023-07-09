@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 icrate = { version = "0.0.3", features = ["Foundation", "Foundation_NSArray", "Foundation_NSNumber", "Foundation_NSMutableDictionary"] }
 objc2 = { version = "0.4.0", features = ["malloc"] }
+
+[dev-dependencies]
+softbuffer = "*"
+winit = "*"

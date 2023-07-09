@@ -8,11 +8,11 @@ pub fn video_settings_from_pixel_format(
 }
 
 pub fn video_settings_rgb32() -> Id<NSMutableDictionary<NSString, NSNumber>> {
-    video_settings_with_pixel_format(0x00000020u32)
+    video_settings_with_pixel_format(32)
 }
 
 pub fn video_settings_rgb24() -> Id<NSMutableDictionary<NSString, NSNumber>> {
-    video_settings_with_pixel_format(0x00000018u32)
+    video_settings_with_pixel_format(24)
 }
 
 fn str_to_u32(string: &str) -> u32 {
@@ -23,10 +23,6 @@ fn str_to_u32(string: &str) -> u32 {
     let c = bytes[2];
     let d = bytes[3];
     let u = unsafe { std::mem::transmute::<[u8; 4], u32>([a, b, c, d]) };
-    #[cfg(target_endian = "big")]
-    let u = u.to_be();
-    #[cfg(target_endian = "little")]
-    let u = u.to_le();
     u
 }
 
