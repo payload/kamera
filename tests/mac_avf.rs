@@ -1,5 +1,7 @@
 use kamera::mac_avf::*;
 
+const TEST_FRAMES: usize = 3;
+
 #[test]
 fn running_capture_session() {
     let device = AVCaptureDevice::default_video_device();
@@ -13,9 +15,10 @@ fn running_capture_session() {
     session.add_output(&*output);
     session.start_running();
 
-    println!("{:?}", slot.wait_for_sample());
-    println!("{:?}", slot.wait_for_sample());
-    println!("{:?}", slot.wait_for_sample());
+    std::iter::from_fn(|| slot.wait_for_sample())
+        .map(|s| println!("{s:?}"))
+        .take(TEST_FRAMES)
+        .count();
 
     session.stop_running();
 }
@@ -35,9 +38,10 @@ fn running_capture_session_for_all_cameras() {
         session.add_output(&*output);
         session.start_running();
 
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
+        std::iter::from_fn(|| slot.wait_for_sample())
+            .map(|s| println!("{s:?}"))
+            .take(TEST_FRAMES)
+            .count();
 
         session.stop_running();
     }
@@ -59,9 +63,10 @@ fn running_capture_session_for_all_cameras_in_rgb32() {
         session.add_output(&*output);
         session.start_running();
 
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
+        std::iter::from_fn(|| slot.wait_for_sample())
+            .map(|s| println!("{s:?}"))
+            .take(TEST_FRAMES)
+            .count();
 
         session.stop_running();
     }
@@ -83,9 +88,10 @@ fn running_capture_session_for_all_cameras_in_rgb24() {
         session.add_output(&*output);
         session.start_running();
 
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
+        std::iter::from_fn(|| slot.wait_for_sample())
+            .map(|s| println!("{s:?}"))
+            .take(TEST_FRAMES)
+            .count();
 
         session.stop_running();
     }
@@ -107,9 +113,10 @@ fn running_capture_session_for_all_cameras_in_yuv2() {
         session.add_output(&*output);
         session.start_running();
 
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
-        println!("{:?}", slot.wait_for_sample());
+        std::iter::from_fn(|| slot.wait_for_sample())
+            .map(|s| println!("{s:?}"))
+            .take(TEST_FRAMES)
+            .count();
 
         session.stop_running();
     }
