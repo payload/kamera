@@ -11,13 +11,13 @@ use winit::{
 use kamera::mac_avf::*;
 
 fn main() {
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
-    let context = unsafe { softbuffer::Context::new(&window) }.unwrap();
-    let mut surface = unsafe { softbuffer::Surface::new(&context, &window) }.unwrap();
-
     #[cfg(target_os = "macos")]
     {
+        let event_loop = EventLoop::new();
+        let window = WindowBuilder::new().build(&event_loop).unwrap();
+        let context = unsafe { softbuffer::Context::new(&window) }.unwrap();
+        let mut surface = unsafe { softbuffer::Surface::new(&context, &window) }.unwrap();
+
         let device = AVCaptureDevice::default_video_device();
         let input = AVCaptureDeviceInput::from_device(&device).unwrap();
         let output = AVCaptureVideoDataOutput::new();
@@ -29,15 +29,12 @@ fn main() {
         session.add_input(&*input);
         session.add_output(&*output);
         session.start_running();
-    }
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
 
-        match event {
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                #[cfg(target_os = "macos")]
-                {
+            match event {
+                Event::RedrawRequested(window_id) if window_id == window.id() => {
                     let sample = slot.wait_for_sample();
 
                     if let Some(sample) = sample {
@@ -54,20 +51,19 @@ fn main() {
                         buffer.copy_from_slice(&pixels.u32[..len]);
                         buffer.present().unwrap();
                     }
-                }
 
-                window.request_redraw();
+                    window.request_redraw();
+                }
+                Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
+                    if window_id == window.id() =>
+                {
+                    *control_flow = ControlFlow::Exit;
+                }
+                Event::LoopDestroyed => {
+                    session.stop_running();
+                }
+                _ => {}
             }
-            Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
-                if window_id == window.id() =>
-            {
-                *control_flow = ControlFlow::Exit;
-            }
-            Event::LoopDestroyed => {
-                #[cfg(target_os = "macos")]
-                session.stop_running();
-            }
-            _ => {}
-        }
-    });
+        });
+    }
 }
