@@ -13,9 +13,9 @@ fn running_capture_session() {
     session.add_output(&*output);
     session.start_running();
 
-    slot.wait_for_sample();
-    slot.wait_for_sample();
-    slot.wait_for_sample();
+    println!("{:?}", slot.wait_for_sample());
+    println!("{:?}", slot.wait_for_sample());
+    println!("{:?}", slot.wait_for_sample());
 
     session.stop_running();
 }

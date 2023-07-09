@@ -12,7 +12,7 @@ use objc2::{
     *,
 };
 
-use super::{CMSampleBuffer, CMSampleBufferRef};
+use super::{CMSampleBuffer, CMSampleBufferRef, SampleBuffer};
 
 declare_class!(
     pub struct SampleBufferDelegate {
@@ -36,7 +36,6 @@ declare_class!(
             _connection: *const c_void,
         ) {
             self.set_slot(sample_buffer);
-            println!("on_output_sample_buffer {:?}", sample_buffer);
         }
 
         #[method(captureOutput:didDropSampleBuffer:fromConnection:)]
@@ -86,18 +85,43 @@ impl Slot {
         }
     }
 
-    pub fn wait_for_sample(&self) {
+    pub fn wait_for_sample(&self) -> Option<SampleBuffer> {
         let mut _guard = self.state.lock().unwrap();
         _guard = self.condvar.wait(_guard).unwrap();
+        let ptr = self.sample.load(std::sync::atomic::Ordering::Relaxed);
+        if ptr.is_null() {
+            None
+        } else {
+            Some(SampleBuffer::new(ptr))
+        }
     }
 
-    fn set_sample(&self, sample: CMSampleBufferRef) {
-        self.sample
-            .store(sample, std::sync::atomic::Ordering::Relaxed);
+    fn set_sample(&self, mut sample: CMSampleBufferRef) {
+        // TODO should instead use SampleBuffer directly, it already wraps Retain and Release
+        sample = if !sample.is_null() {
+            unsafe { super::CFRetain(sample.cast()).cast_mut().cast() }
+        } else {
+            sample
+        };
+        let old_sample = self
+            .sample
+            .swap(sample, std::sync::atomic::Ordering::Relaxed);
+        if !old_sample.is_null() {
+            unsafe { super::CFRelease(old_sample.cast()) };
+        }
     }
 
     fn notify_all(&self) {
         self.condvar.notify_all();
+    }
+}
+
+impl Drop for Slot {
+    fn drop(&mut self) {
+        let sample = self.sample.load(std::sync::atomic::Ordering::Relaxed);
+        if !sample.is_null() {
+            unsafe { super::CFRelease(sample.cast()) };
+        }
     }
 }
 
