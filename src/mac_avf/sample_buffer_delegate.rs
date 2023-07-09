@@ -14,7 +14,7 @@ unsafe impl Message for SampleBufferDelegate {}
 trait AVCaptureVideoDataOutputSampleBufferDelegate {
     // captureOutput:didOutputSampleBuffer:fromConnection:
     fn on_output_sample_buffer(
-        &self,
+        &mut self,
         capture_output: *const c_void,
         sample_buffer: *const c_void,
         connection: *const c_void,
@@ -25,7 +25,7 @@ trait AVCaptureVideoDataOutputSampleBufferDelegate {
 
 impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
     fn on_output_sample_buffer(
-        &self,
+        &mut self,
         capture_output: *const c_void,
         sample_buffer: *const c_void,
         connection: *const c_void,
@@ -34,6 +34,10 @@ impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
             "OUTPUT {:?} {:?} {:?} {:?}",
             self as *const _, capture_output, sample_buffer, connection
         );
+        let state = self.get_slot_value();
+        self.set_slot_value(State {
+            frame_counter: state.frame_counter + 1,
+        });
     }
 
     fn on_drop_sample_buffer(&self, capture_output: (), sample_buffer: (), connection: ()) {
@@ -43,12 +47,12 @@ impl AVCaptureVideoDataOutputSampleBufferDelegate for SampleBufferDelegate {
 
 // TODO Protocol::protocols
 
-pub type Slot = RwLock<Foo>;
+pub type Slot = RwLock<State>;
 
 impl SampleBufferDelegate {
     pub fn new() -> Id<Self> {
         let mut this: Id<Self> = INSObject::new();
-        let slot: Box<Arc<Slot>> = Box::new(Arc::new(RwLock::new(Foo::A)));
+        let slot: Box<Arc<Slot>> = Box::new(Arc::new(RwLock::new(State { frame_counter: 0 })));
         this.set_slot(slot);
         this
     }
@@ -68,11 +72,22 @@ impl SampleBufferDelegate {
         clone
     }
 
-    fn set_slot_value(&mut self, value: Foo) {
+    fn set_slot_value(&mut self, value: State) {
         let ptr = *self.get_mut_slot();
         let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
         *slot.write().unwrap() = value;
         let _slot = Box::into_raw(slot);
+    }
+
+    fn get_slot_value(&self) -> State {
+        let ptr = unsafe {
+            let obj = &*(self as *const _ as *const Object);
+            obj.get_ivar::<*mut c_void>("slot")
+        };
+        let slot: Box<Arc<Slot>> = unsafe { Box::from_raw(ptr.cast()) };
+        let value = slot.read().unwrap().clone();
+        let _slot = Box::into_raw(slot);
+        value
     }
 
     fn set_slot(&mut self, slot: Box<Arc<Slot>>) {
@@ -130,8 +145,8 @@ impl INSObject for SampleBufferDelegate {
                 sample_buffer: *const c_void,
                 connection: *const c_void,
             ) {
-                let that: *const SampleBufferDelegate = (this as *mut Object).cast();
-                let that = unsafe { that.as_ref().unwrap() };
+                let that: *mut SampleBufferDelegate = (this as *mut Object).cast();
+                let that = unsafe { that.as_mut().unwrap() };
                 SampleBufferDelegate::on_output_sample_buffer(
                     that,
                     capture_output,
@@ -163,15 +178,14 @@ fn main() {
     if let Ok(v) = slot.read() {
         println!("{v:?}");
     }
-    delegate.set_slot_value(Foo::B);
+    delegate.set_slot_value(State { frame_counter: 2 });
     if let Ok(v) = slot.read() {
         println!("{v:?}");
     }
     delegate.release_slot();
 }
 
-#[derive(Debug)]
-pub enum Foo {
-    A,
-    B,
+#[derive(Debug, Clone)]
+pub struct State {
+    frame_counter: usize,
 }
