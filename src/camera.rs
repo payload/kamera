@@ -45,7 +45,7 @@ impl Frame {
 }
 
 impl<'a> FrameData<'a> {
-    pub fn u32_data(&self) -> &[u32] {
-        self.inner.u32_data()
+    pub fn data_u32(&self) -> &[u32] {
+        self.inner.data_u32()
     }
 }

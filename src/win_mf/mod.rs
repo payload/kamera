@@ -53,7 +53,7 @@ impl Frame {
 }
 
 impl<'a> FrameData<'a> {
-    pub fn u32_data(&self) -> &[u32] {
+    pub fn data_u32(&self) -> &[u32] {
         let (a, data, b) = unsafe { self.data.align_to() };
         debug_assert!(a.is_empty());
         debug_assert!(b.is_empty());

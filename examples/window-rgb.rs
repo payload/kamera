@@ -33,7 +33,7 @@ fn main() {
 
                 let mut buffer = surface.buffer_mut().unwrap();
                 let len = buffer.len();
-                buffer.copy_from_slice(&frame.data().u32_data()[..len]);
+                buffer.copy_from_slice(&frame.data().data_u32()[..len]);
                 buffer.present().unwrap();
             }
             Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
