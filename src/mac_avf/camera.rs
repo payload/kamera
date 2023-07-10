@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Camera {
-    _device: Id<AVCaptureDevice>,
-    _input: Id<AVCaptureDeviceInput>,
-    _output: Id<AVCaptureVideoDataOutput>,
+    device: Id<AVCaptureDevice>,
+    input: Id<AVCaptureDeviceInput>,
+    output: Id<AVCaptureVideoDataOutput>,
     session: Id<AVCaptureSession>,
     slot: Arc<Slot>,
 }
@@ -33,7 +33,7 @@ impl Camera {
         session.add_input(&input);
         session.add_output(&output);
 
-        Camera { _device: device, _input: input, _output: output, session, slot }
+        Camera { device, input, output, session, slot }
     }
 
     pub fn start(&self) {

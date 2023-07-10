@@ -1,3 +1,5 @@
+use objc2::rc::Id;
+
 use super::*;
 
 const TEST_FRAMES: usize = 3;
@@ -120,4 +122,38 @@ fn running_capture_session_for_all_cameras_in_yuv2() {
 
         session.stop_running();
     }
+}
+
+#[test]
+fn running_capture_session_from_changing_cameras() {
+    println!();
+    let session = AVCaptureSession::new();
+    let output = AVCaptureVideoDataOutput::new();
+    let delegate = SampleBufferDelegate::new();
+    let slot = delegate.slot();
+    output.set_sample_buffer_delegate(delegate);
+    session.add_output(&*output);
+
+    let mut input: Option<Id<AVCaptureDeviceInput>> = None;
+
+    session.start_running();
+
+    for device in AVCaptureDevice::all_video_devices() {
+        println!("{}", device.localized_name());
+
+        if let Some(input) = input {
+            session.remove_input(&*input);
+        }
+
+        let new_input = AVCaptureDeviceInput::from_device(&device).unwrap();
+        session.add_input(&*new_input);
+        input = Some(new_input);
+
+        std::iter::from_fn(|| slot.wait_for_sample())
+            .map(|s| println!("{s:?}"))
+            .take(TEST_FRAMES)
+            .count();
+    }
+
+    session.stop_running();
 }

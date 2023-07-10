@@ -42,6 +42,10 @@ impl AVCaptureSession {
     pub fn add_output(&self, output: &AVCaptureVideoDataOutput) {
         unsafe { msg_send!(self, addOutput: output) }
     }
+
+    pub fn remove_input(&self, input: &AVCaptureDeviceInput) {
+        unsafe { msg_send!(self, removeInput: input) }
+    }
 }
 
 #[test]
