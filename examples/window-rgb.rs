@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use winit::{
     dpi::PhysicalSize,
-    event::{Event, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -15,7 +15,7 @@ fn main() {
     let context = unsafe { softbuffer::Context::new(&window) }.unwrap();
     let mut surface = unsafe { softbuffer::Surface::new(&context, &window) }.unwrap();
 
-    let camera = Camera::new_default_device();
+    let mut camera = Camera::new_default_device();
     camera.start();
 
     event_loop.run(move |event, _x, control_flow| {
@@ -46,6 +46,12 @@ fn main() {
             }
             Event::RedrawEventsCleared => {
                 window.request_redraw();
+            }
+            Event::DeviceEvent {
+                event: DeviceEvent::Button { button: 0, state: ElementState::Released },
+                device_id: _,
+            } => {
+                camera.change_device();
             }
             _ => {}
         }
