@@ -3,9 +3,9 @@ use objc2::rc::Id;
 use std::sync::Arc;
 
 pub struct Camera {
-    device: Id<AVCaptureDevice>,
-    input: Id<AVCaptureDeviceInput>,
-    output: Id<AVCaptureVideoDataOutput>,
+    _device: Id<AVCaptureDevice>,
+    _input: Id<AVCaptureDeviceInput>,
+    _output: Id<AVCaptureVideoDataOutput>,
     session: Id<AVCaptureSession>,
     slot: Arc<Slot>,
 }
@@ -29,10 +29,10 @@ impl Camera {
         let slot = delegate.slot();
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate);
-        session.add_input(&*input);
-        session.add_output(&*output);
+        session.add_input(&input);
+        session.add_output(&output);
 
-        Camera { device, input, output, session, slot }
+        Camera { _device: device, _input: input, _output: output, session, slot }
     }
 
     pub fn start(&self) {
@@ -44,11 +44,7 @@ impl Camera {
     }
 
     pub fn wait_for_frame(&self) -> Option<Frame> {
-        if let Some(sample) = self.slot.wait_for_sample() {
-            Some(Frame { sample })
-        } else {
-            None
-        }
+        self.slot.wait_for_sample().map(|sample| Frame { sample })
     }
 }
 

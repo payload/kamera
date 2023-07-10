@@ -124,7 +124,7 @@ pub type CMFormatDescriptionRef = *mut CMFormatDescription;
 pub fn fourcc_to_string(px_format_u32: u32) -> String {
     let bytes = px_format_u32.to_ne_bytes();
 
-    if &bytes[1..4] == &[0, 0, 0] {
+    if bytes[1..4] == [0, 0, 0] {
         match bytes[0] {
             32 => "ARGB",
             24 => "RGB ",

@@ -17,6 +17,7 @@ extern_class! {
 
 unsafe impl NSObjectProtocol for AVCaptureDevice {}
 
+#[allow(unused)]
 impl AVCaptureDevice {
     pub fn default_video_device() -> Id<Self> {
         let video = Self::media_type_video();

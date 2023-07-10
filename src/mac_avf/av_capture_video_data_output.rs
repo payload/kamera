@@ -48,7 +48,8 @@ extern_methods! {
 #[link(name = "System", kind = "dylib")]
 extern "C" {
     pub fn dispatch_queue_create(name: *const c_char, attr: *const c_void) -> DispatchQueueT;
-    pub fn dispatch_release(queue: DispatchQueueT);
+    // TODO use it and don't leak queues
+    // pub fn dispatch_release(queue: DispatchQueueT);
 }
 
 pub type DispatchQueueT = *mut NSObject;

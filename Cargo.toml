@@ -1,11 +1,12 @@
 [package]
 name = "kamera"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 authors = ["Gilbert Röhrbein"]
 keywords = ["camera", "webcam", "capture", "cross-platform"]
 license = "MIT/Apache-2.0"
 description = "Camera API with a reduced feature set for basic use cases and learning"
+documentation = "https://docs.rs/kamera"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 icrate = { version = "0.0.3", features = [

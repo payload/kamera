@@ -11,8 +11,8 @@ fn running_capture_session() {
     let slot = delegate.slot();
     let session = AVCaptureSession::new();
     output.set_sample_buffer_delegate(delegate);
-    session.add_input(&*input);
-    session.add_output(&*output);
+    session.add_input(&input);
+    session.add_output(&output);
     session.start_running();
 
     std::iter::from_fn(|| slot.wait_for_sample())
@@ -34,8 +34,8 @@ fn running_capture_session_for_all_cameras() {
         let slot = delegate.slot();
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate);
-        session.add_input(&*input);
-        session.add_output(&*output);
+        session.add_input(&input);
+        session.add_output(&output);
         session.start_running();
 
         std::iter::from_fn(|| slot.wait_for_sample())
@@ -59,8 +59,8 @@ fn running_capture_session_for_all_cameras_in_rgb32() {
         let slot = delegate.slot();
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate);
-        session.add_input(&*input);
-        session.add_output(&*output);
+        session.add_input(&input);
+        session.add_output(&output);
         session.start_running();
 
         std::iter::from_fn(|| slot.wait_for_sample())
@@ -84,8 +84,8 @@ fn running_capture_session_for_all_cameras_in_rgb24() {
         let slot = delegate.slot();
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate);
-        session.add_input(&*input);
-        session.add_output(&*output);
+        session.add_input(&input);
+        session.add_output(&output);
         session.start_running();
 
         std::iter::from_fn(|| slot.wait_for_sample())
@@ -109,8 +109,8 @@ fn running_capture_session_for_all_cameras_in_yuv2() {
         let slot = delegate.slot();
         let session = AVCaptureSession::new();
         output.set_sample_buffer_delegate(delegate);
-        session.add_input(&*input);
-        session.add_output(&*output);
+        session.add_input(&input);
+        session.add_output(&output);
         session.start_running();
 
         std::iter::from_fn(|| slot.wait_for_sample())

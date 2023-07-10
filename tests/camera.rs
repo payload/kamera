@@ -62,7 +62,7 @@ fn frame_data() {
     let camera = Camera::new_default_device();
     camera.start();
     let frame = camera.wait_for_frame().unwrap();
-    let (w, h) = frame.size_u32();
+    let (_w, _h) = frame.size_u32();
     let data1 = frame.data();
     let data2 = frame.data();
     println!("data len {}", data1.data_u32().len());

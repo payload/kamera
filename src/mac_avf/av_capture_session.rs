@@ -17,6 +17,7 @@ extern_class! {
 
 unsafe impl NSObjectProtocol for AVCaptureSession {}
 
+#[allow(unused)]
 impl AVCaptureSession {
     pub fn new() -> Id<Self> {
         unsafe { msg_send_id!(Self::class(), new) }
@@ -68,11 +69,11 @@ fn add_input() {
     use super::AVCaptureDevice;
     let device = AVCaptureDevice::default_video_device();
     let input = AVCaptureDeviceInput::from_device(&device).unwrap();
-    AVCaptureSession::new().add_input(&*input);
+    AVCaptureSession::new().add_input(&input);
 }
 
 #[test]
 fn add_output() {
     let output = AVCaptureVideoDataOutput::new();
-    AVCaptureSession::new().add_output(&*output);
+    AVCaptureSession::new().add_output(&output);
 }

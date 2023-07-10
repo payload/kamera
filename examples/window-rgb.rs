@@ -18,7 +18,7 @@ fn main() {
     let camera = Camera::new_default_device();
     camera.start();
 
-    event_loop.run(move |event, x, control_flow| {
+    event_loop.run(move |event, _x, control_flow| {
         *control_flow = ControlFlow::Poll;
 
         match event {
