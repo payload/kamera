@@ -91,3 +91,16 @@ fn two_cameras_start_and_wait_for_frames() {
     println!("Camera 1 {:?}", camera1.wait_for_frame());
     println!("Camera 2 {:?}", camera2.wait_for_frame());
 }
+
+#[test]
+fn change_device() {
+    let mut camera = Camera::new_default_device();
+    camera.start();
+    assert!(camera.wait_for_frame().is_some());
+    assert!(camera.wait_for_frame().is_some());
+    assert!(camera.wait_for_frame().is_some());
+    camera.change_device();
+    assert!(camera.wait_for_frame().is_some());
+    assert!(camera.wait_for_frame().is_some());
+    assert!(camera.wait_for_frame().is_some());
+}
