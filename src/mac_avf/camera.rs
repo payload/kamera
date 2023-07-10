@@ -6,6 +6,7 @@ use std::sync::Arc;
 pub struct Camera {
     device: Id<AVCaptureDevice>,
     input: Id<AVCaptureDeviceInput>,
+    #[allow(unused)]
     output: Id<AVCaptureVideoDataOutput>,
     session: Id<AVCaptureSession>,
     slot: Arc<Slot>,
