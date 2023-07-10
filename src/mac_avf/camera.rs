@@ -47,6 +47,21 @@ impl Camera {
     pub fn wait_for_frame(&self) -> Option<Frame> {
         self.slot.wait_for_sample().map(|sample| Frame { sample })
     }
+
+    pub fn change_device(&mut self) {
+        let devices = AVCaptureDevice::all_video_devices();
+        let Some(index) = devices.iter().position(|d| d.unique_id() == self.device.unique_id()) else { return };
+        let new_index = (index + 1) % devices.len();
+        if new_index == index {
+            return;
+        }
+        let new_device = devices[new_index].retain();
+        let new_input = AVCaptureDeviceInput::from_device(&*new_device).unwrap();
+        self.session.remove_input(&*self.input);
+        self.device = new_device;
+        self.input = new_input;
+        self.session.add_input(&*self.input);
+    }
 }
 
 impl Frame {
@@ -68,4 +83,25 @@ impl<'a> FrameData<'a> {
     pub fn data_u32(&self) -> &[u32] {
         self.pixels.u32
     }
+}
+
+#[cfg(test)]
+const TEST_FRAMES: usize = 3;
+
+#[test]
+fn change_device() {
+    let mut camera = Camera::new_default_device();
+    camera.start();
+
+    std::iter::from_fn(|| camera.wait_for_frame())
+        .map(|s| println!("{s:?}"))
+        .take(TEST_FRAMES)
+        .count();
+
+    camera.change_device();
+
+    std::iter::from_fn(|| camera.wait_for_frame())
+        .map(|s| println!("{s:?}"))
+        .take(TEST_FRAMES)
+        .count();
 }

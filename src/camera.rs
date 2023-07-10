@@ -37,6 +37,11 @@ impl Camera {
     pub fn wait_for_frame(&self) -> Option<Frame> {
         self.inner.wait_for_frame().map(|inner| Frame { inner })
     }
+
+    pub fn change_device(&mut self) {
+        #[cfg(target_os = "macos")]
+        self.inner.change_device();
+    }
 }
 
 impl Frame {
