@@ -16,6 +16,7 @@ pub struct Device {
 
 impl Device {
     fn new(activate: IMFActivate) -> Self {
+        co_initialize_multithreaded();
         let source = unsafe { activate.ActivateObject().unwrap() };
         Self { activate, source }
     }
@@ -66,12 +67,14 @@ pub struct Camera {
 
 impl Camera {
     pub fn new() -> Self {
+        co_initialize_multithreaded();
         media_foundation_startup().expect("media_foundation_startup");
         let engine = CaptureEngine::new().unwrap();
         Self { engine, frame: None }
     }
 
     pub fn from_device(device: &Device) -> Self {
+        co_initialize_multithreaded();
         media_foundation_startup().expect("media_foundation_startup");
         let mut engine = CaptureEngine::new().unwrap();
         engine.init(Some(device.clone())).unwrap();
@@ -103,7 +106,11 @@ impl Camera {
         self.engine.start_preview().unwrap();
     }
 
-    pub fn just_start(&mut self) {
+    pub fn prepare(&self) {
+        self.engine.prepare().unwrap();
+    }
+
+    pub fn just_start(&self) {
         self.engine.just_start_preview().unwrap();
     }
 
@@ -147,6 +154,7 @@ impl Default for Camera {
     }
 }
 
+#[derive(Debug)]
 pub struct CameraFrame {
     sample: LockedBuffer,
 }
@@ -276,7 +284,11 @@ impl CaptureEngine {
         Ok(())
     }
 
-    fn just_start_preview(&mut self) -> Result<()> {
+    fn prepare(&self) -> Result<()> {
+        capture_engine_prepare_sample_callback(&self.engine, &self.sample_cb)
+    }
+
+    fn just_start_preview(&self) -> Result<()> {
         unsafe { self.engine.StartPreview() }
     }
 
@@ -377,6 +389,46 @@ fn init_capture_engine(
     }
 }
 
+fn capture_engine_prepare_sample_callback(
+    capture_engine: &IMFCaptureEngine,
+    sample_cb: &IMFCaptureEngineOnSampleCallback,
+) -> Result<()> {
+    unsafe {
+        let source = capture_engine.GetSource().expect("GetSource");
+
+        // TODO could get video capabilities
+        // TODO choose media_type from capabilities and requested format
+        let streams = source.GetDeviceStreamCount().expect("GetDeviceStreamCount");
+        for index in 0..streams {
+            let cat = source.GetDeviceStreamCategory(index).expect("GetDeviceStreamCategory");
+            let cat = StreamCategory::from(cat.0);
+            println!("{index} {cat:?}");
+        }
+
+        let media_type = source.GetCurrentDeviceMediaType(0).expect("GetCurrentDeviceMediaType");
+        println!("Source {}", MediaType(media_type.clone()));
+
+        source.SetCurrentDeviceMediaType(0, &media_type).expect("SetCurrentDeviceMediaType");
+
+        let sink = capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW).expect("GetSink");
+
+        let preview_sink: IMFCapturePreviewSink = sink.cast().expect("CapturePreviewSink");
+
+        let mut rgb_media_type = MediaType(media_type);
+        rgb_media_type.set_rgb32();
+
+        let stream_index =
+            preview_sink.AddStream(0, Some(&rgb_media_type.0), None).expect("AddStream");
+        println!("Stream Index {stream_index}");
+
+        preview_sink.SetSampleCallback(stream_index, Some(sample_cb)).expect("SetSampleCallback");
+
+        let output_media_type = MediaType(preview_sink.GetOutputMediaType(stream_index).unwrap());
+        println!("Output {output_media_type}");
+    }
+    Ok(())
+}
+
 fn capture_engine_start_preview(
     capture_engine: &IMFCaptureEngine,
     sample_cb: &IMFCaptureEngineOnSampleCallback,
@@ -457,6 +509,7 @@ fn sample_to_locked_buffer(sample: &IMFSample, width: u32, height: u32) -> Resul
     }
 }
 
+#[derive(Debug)]
 struct LockedBuffer {
     buffer: IMF2DBuffer2,
     width: u32,
@@ -634,7 +687,14 @@ struct CaptureSampleCallback {
 }
 
 pub fn co_initialize_multithreaded() {
-    unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.unwrap();
+    if let Err(err) = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) } {
+        if err.code() == HRESULT(0x80010106u32 as i32) {
+            // "Cannot change thread mode after it is set."
+            // Ignore this error and hope for the best until we know better how to deal with this case.
+        } else {
+            panic!("{err}");
+        }
+    }
 }
 
 pub fn co_uninitialize() {

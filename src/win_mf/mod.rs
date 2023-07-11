@@ -16,6 +16,7 @@ pub struct Camera {
     camera: win_mf::Camera,
 }
 
+#[derive(Debug)]
 pub struct Frame {
     frame: win_mf::CameraFrame,
 }
@@ -26,11 +27,13 @@ pub struct FrameData<'a> {
 
 impl Camera {
     pub fn new_default_device() -> Self {
-        Camera { camera: win_mf::Camera::new_default_device() }
+        let camera = win_mf::Camera::new_default_device();
+        camera.prepare();
+        Camera { camera }
     }
 
     pub fn start(&self) {
-        self.camera.start();
+        self.camera.just_start();
     }
 
     pub fn stop(&self) {
