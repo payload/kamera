@@ -20,13 +20,11 @@ impl std::fmt::Display for MediaType {
 
 impl MediaType {
     pub fn frame_size(&self) -> (u32, u32) {
-        let size = unsafe { self.0.GetUINT64(&MF_MT_FRAME_SIZE) }.unwrap();
-        self.unpack_u64(size)
+        unsafe { self.0.GetUINT64(&MF_MT_FRAME_SIZE) }.map(MediaType::unpack_u64).unwrap_or((0, 0))
     }
 
     pub fn frame_rate(&self) -> (u32, u32) {
-        let frame_rate = unsafe { self.0.GetUINT64(&MF_MT_FRAME_RATE) }.unwrap();
-        self.unpack_u64(frame_rate)
+        unsafe { self.0.GetUINT64(&MF_MT_FRAME_RATE) }.map(MediaType::unpack_u64).unwrap_or((0, 1))
     }
 
     pub fn set_rgb32(&mut self) {
@@ -38,7 +36,7 @@ impl MediaType {
         n as f32 / d as f32
     }
 
-    fn unpack_u64(&self, v: u64) -> (u32, u32) {
+    fn unpack_u64(v: u64) -> (u32, u32) {
         ((v >> 32) as _, (v << 32 >> 32) as _)
     }
 
