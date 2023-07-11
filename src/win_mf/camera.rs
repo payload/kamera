@@ -2,18 +2,17 @@ use super::win_mf::{
     self, activate_to_media_source, capture_engine_prepare_sample_callback,
     capture_engine_sink_get_media_type, co_initialize_multithreaded, enum_device_sources,
     init_capture_engine, new_capture_engine, sample_to_locked_buffer, CameraFrame,
-    CaptureEngineEvent, CaptureEventCallback, CaptureSampleCallback, Device,
+    CaptureEngineEvent, CaptureEventCallback, CaptureSampleCallback,
 };
 
-use std::{ffi::OsString, mem::MaybeUninit, sync::mpsc::*};
+use std::{sync::mpsc::*};
 
 use windows::{
-    core::*,
-    Win32::{Media::MediaFoundation::*, System::Com::*},
+    Win32::{Media::MediaFoundation::*},
 };
 
-use super::attributes::{mf_create_attributes, mf_get_string};
-use super::media_type::MediaType;
+
+
 
 pub struct Camera {
     engine: IMFCaptureEngine,

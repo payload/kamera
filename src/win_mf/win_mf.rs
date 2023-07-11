@@ -275,7 +275,7 @@ impl CaptureEngine {
     }
 
     fn start_preview(&self) -> Result<()> {
-        let sample_media_type = capture_engine_start_preview(&self.engine, &self.sample_cb)?;
+        let _sample_media_type = capture_engine_start_preview(&self.engine, &self.sample_cb)?;
         // self.sample_media_type = Some(sample_media_type);
         self.wait_for_event(CaptureEngineEvent::PreviewStarted);
         // PreviewStarted could be followed by Error before first Sample comes
@@ -324,7 +324,7 @@ impl CaptureEngine {
     }
 
     fn try_recv_sample(&self) -> Option<LockedBuffer> {
-        if let Some(mt) = capture_engine_sink_get_media_type(&self.engine).ok() {
+        if let Ok(mt) = capture_engine_sink_get_media_type(&self.engine) {
             let width = mt.frame_width();
             let height = mt.frame_height();
 
@@ -534,10 +534,10 @@ impl Clone for LockedBuffer {
 
         Self {
             buffer: self.buffer.clone(),
-            width: self.width.clone(),
-            height: self.height.clone(),
-            scanline0: self.scanline0.clone(),
-            len: self.len.clone(),
+            width: self.width,
+            height: self.height,
+            scanline0: self.scanline0,
+            len: self.len,
         }
     }
 }
