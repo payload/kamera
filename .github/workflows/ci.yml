@@ -1,7 +1,7 @@
 name: Continuous Integration
 on:
   push:
-    branches: [main, fix_win_mf]
+    branches: [main]
   pull_request:
 jobs:
   windows:
