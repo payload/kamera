@@ -1,19 +1,15 @@
-use super::win_mf::{
+use super::mf::{
     self, activate_to_media_source, capture_engine_prepare_sample_callback,
-    capture_engine_sink_get_media_type, co_initialize_multithreaded, enum_device_sources,
-    init_capture_engine, new_capture_engine, sample_to_locked_buffer, CameraFrame,
-    CaptureEngineEvent, CaptureEventCallback, CaptureSampleCallback,
+    capture_engine_sink_get_media_type, capture_engine_stop_preview, co_initialize_multithreaded,
+    enum_device_sources, init_capture_engine, new_capture_engine, sample_to_locked_buffer,
+    CameraFrame, CaptureEngineEvent, CaptureEventCallback, CaptureSampleCallback,
 };
 
-use std::{sync::mpsc::*};
+use std::sync::mpsc::*;
 
-use windows::{
-    Win32::{Media::MediaFoundation::*},
-};
+use windows::Win32::Media::MediaFoundation::*;
 
-
-
-
+#[allow(unused)]
 pub struct Camera {
     engine: IMFCaptureEngine,
     device: IMFActivate,
@@ -26,7 +22,7 @@ pub struct Camera {
 
 #[derive(Debug)]
 pub struct Frame {
-    frame: win_mf::CameraFrame,
+    frame: mf::CameraFrame,
 }
 
 pub struct FrameData<'a> {
@@ -36,7 +32,7 @@ pub struct FrameData<'a> {
 impl Camera {
     pub fn new_default_device() -> Self {
         co_initialize_multithreaded();
-        win_mf::media_foundation_startup().expect("media_foundation_startup");
+        mf::media_foundation_startup().expect("media_foundation_startup");
 
         let engine = new_capture_engine().unwrap();
         let (event_tx, event_rx) = channel::<CaptureEngineEvent>();
@@ -62,7 +58,7 @@ impl Camera {
     }
 
     pub fn stop(&self) {
-        unsafe { self.engine.StopPreview().unwrap() }
+        capture_engine_stop_preview(&self.engine).unwrap();
     }
 
     pub fn wait_for_frame(&self) -> Option<Frame> {

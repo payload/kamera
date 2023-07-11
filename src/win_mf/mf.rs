@@ -35,6 +35,7 @@ impl Drop for Device {
     }
 }
 
+#[allow(unused)]
 impl Device {
     pub fn name(&self) -> String {
         mf_get_string(&self.activate, &MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME)
@@ -68,14 +69,6 @@ pub struct CameraFrame {
 impl CameraFrame {
     pub fn data(&self) -> &[u8] {
         self.sample.data()
-    }
-
-    pub fn width(&self) -> u32 {
-        self.sample.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.sample.height
     }
 
     pub fn size_u32(&self) -> (u32, u32) {
@@ -133,38 +126,31 @@ pub(crate) fn media_foundation_shutdown() -> Result<()> {
     unsafe { MFShutdown() }
 }
 
-struct CaptureEngine {
-    device: Option<Device>,
-    engine: IMFCaptureEngine,
-    sample_media_type: Option<MediaType>,
+// TODO use and fix it
+pub(crate) fn _capture_engine_change_media_type(
+    engine: &IMFCaptureEngine,
+    media_type: &MediaType,
+) -> Result<()> {
+    unsafe {
+        let source = engine.GetSource()?;
+        let sink = engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?;
+        let sink: IMFCapturePreviewSink = sink.cast()?;
+        engine.StopPreview()?;
 
-    event_cb: IMFCaptureEngineOnEventCallback,
-    sample_cb: IMFCaptureEngineOnSampleCallback,
-    event_rx: Receiver<CaptureEngineEvent>,
-    sample_rx: Receiver<Option<IMFSample>>,
-}
+        source.SetCurrentDeviceMediaType(0, &media_type.0)?;
+        sink.RemoveAllStreams()?;
+        let mut rgb_media_type = media_type.clone();
+        rgb_media_type.set_rgb32();
+        let stream_index = sink.AddStream(0, Some(&media_type.0), None)?;
 
-impl CaptureEngine {
-    fn set_media_type(&mut self, media_type: &MediaType) -> Result<()> {
-        unsafe {
-            let source = self.engine.GetSource()?;
-            let sink = self.engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?;
-            let sink: IMFCapturePreviewSink = sink.cast()?;
-            self.engine.StopPreview()?;
-            source.SetCurrentDeviceMediaType(0, &media_type.0)?;
-            sink.RemoveAllStreams()?;
-            let mut rgb_media_type = media_type.clone();
-            rgb_media_type.set_rgb32();
-            let stream_index = sink.AddStream(0, Some(&media_type.0), None)?;
-            let (sample_tx, sample_rx) = channel();
-            self.sample_cb = CaptureSampleCallback { sample_tx }.into();
-            self.sample_rx = sample_rx;
-            sink.SetSampleCallback(stream_index, Some(&self.sample_cb))?;
-            self.engine.StartPreview()?;
-        }
-        self.sample_media_type = Some(media_type.clone());
-        Ok(())
+        // TODO maybe changing the sample callback is not necessary when the stream_index is the same?
+        let (sample_tx, _sample_rx) = channel();
+        let sample_cb = CaptureSampleCallback { sample_tx }.into();
+        sink.SetSampleCallback(stream_index, Some(&sample_cb))?;
+
+        engine.StartPreview()?;
     }
+    Ok(())
 }
 
 pub(crate) fn new_capture_engine() -> Result<IMFCaptureEngine> {
@@ -218,56 +204,13 @@ pub(crate) fn capture_engine_prepare_sample_callback(
     Ok(())
 }
 
-fn capture_engine_start_preview(
-    capture_engine: &IMFCaptureEngine,
-    sample_cb: &IMFCaptureEngineOnSampleCallback,
-) -> Result<MediaType> {
-    unsafe {
-        let source = capture_engine.GetSource().expect("GetSource");
-
-        // TODO could get video capabilities
-        // TODO choose media_type from capabilities and requested format
-        let streams = source.GetDeviceStreamCount().expect("GetDeviceStreamCount");
-        for index in 0..streams {
-            let cat = source.GetDeviceStreamCategory(index).expect("GetDeviceStreamCategory");
-            let cat = StreamCategory::from(cat.0);
-            println!("{index} {cat:?}");
-        }
-
-        let media_type = source.GetCurrentDeviceMediaType(0).expect("GetCurrentDeviceMediaType");
-        println!("Source {}", MediaType(media_type.clone()));
-
-        source.SetCurrentDeviceMediaType(0, &media_type).expect("SetCurrentDeviceMediaType");
-
-        let sink = capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW).expect("GetSink");
-
-        let preview_sink: IMFCapturePreviewSink = sink.cast().expect("CapturePreviewSink");
-
-        let mut rgb_media_type = MediaType(media_type);
-        rgb_media_type.set_rgb32();
-
-        let stream_index =
-            preview_sink.AddStream(0, Some(&rgb_media_type.0), None).expect("AddStream");
-        println!("Stream Index {stream_index}");
-
-        preview_sink.SetSampleCallback(stream_index, Some(sample_cb)).expect("SetSampleCallback");
-
-        let output_media_type = MediaType(preview_sink.GetOutputMediaType(stream_index).unwrap());
-        println!("Output {output_media_type}");
-
-        capture_engine.StartPreview().expect("StartPreview");
-
-        Ok(output_media_type)
-    }
-}
-
 pub fn capture_engine_sink_get_media_type(capture_engine: &IMFCaptureEngine) -> Result<MediaType> {
     Ok(MediaType(unsafe {
         capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?.GetOutputMediaType(0)?
     }))
 }
 
-fn capture_engine_stop_preview(capture_engine: &IMFCaptureEngine) -> Result<()> {
+pub(crate) fn capture_engine_stop_preview(capture_engine: &IMFCaptureEngine) -> Result<()> {
     unsafe { capture_engine.StopPreview() }
 }
 
@@ -490,10 +433,12 @@ pub fn co_initialize_multithreaded() {
     }
 }
 
-pub fn co_uninitialize() {
-    unsafe { CoUninitialize() };
-}
+// TODO when to use this?
+// pub fn co_uninitialize() {
+//     unsafe { CoUninitialize() };
+// }
 
+#[cfg(test)]
 pub fn co_mta_usage() {
     let _ = unsafe { CoIncrementMTAUsage() };
 }
