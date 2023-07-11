@@ -1,4 +1,4 @@
-use super::win_mf::*;
+use super::mf::*;
 
 #[test]
 fn device_enum_devices() {
