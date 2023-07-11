@@ -60,6 +60,10 @@ impl Frame {
 }
 
 impl<'a> FrameData<'a> {
+    pub fn data_u8(&self) -> &[u8] {
+        self.pixels.data
+    }
+
     pub fn data_u32(&self) -> &[u32] {
         self.pixels.u32
     }
