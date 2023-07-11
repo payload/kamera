@@ -156,7 +156,7 @@ impl Default for Camera {
 
 #[derive(Debug)]
 pub struct CameraFrame {
-    sample: LockedBuffer,
+    pub sample: LockedBuffer,
 }
 
 impl CameraFrame {
@@ -183,7 +183,7 @@ impl std::fmt::Display for CameraFrame {
     }
 }
 
-fn enum_device_sources() -> Vec<IMFActivate> {
+pub(crate) fn enum_device_sources() -> Vec<IMFActivate> {
     unsafe {
         let source_type = &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE;
         let vidcap_guid = &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID;
@@ -218,12 +218,12 @@ fn query_media_types_from_media_source(media_source: &IMFMediaSource) -> Vec<Med
     }
 }
 
-fn media_foundation_startup() -> Result<()> {
+pub(crate) fn media_foundation_startup() -> Result<()> {
     unsafe { MFStartup(MF_API_VERSION, MFSTARTUP_NOSOCKET) }
 }
 
 #[allow(unused)]
-fn media_foundation_shutdown() -> Result<()> {
+pub(crate) fn media_foundation_shutdown() -> Result<()> {
     unsafe { MFShutdown() }
 }
 
@@ -358,7 +358,7 @@ impl CaptureEngine {
     }
 }
 
-fn new_capture_engine() -> Result<IMFCaptureEngine> {
+pub(crate) fn new_capture_engine() -> Result<IMFCaptureEngine> {
     unsafe {
         let engine_factory: IMFCaptureEngineClassFactory = CoCreateInstance::<Option<&IUnknown>, _>(
             &CLSID_MFCaptureEngineClassFactory,
@@ -369,7 +369,7 @@ fn new_capture_engine() -> Result<IMFCaptureEngine> {
     }
 }
 
-fn init_capture_engine(
+pub(crate) fn init_capture_engine(
     capture_engine: &IMFCaptureEngine,
     media_source: Option<&IMFMediaSource>,
     event_cb: &IMFCaptureEngineOnEventCallback,
@@ -389,7 +389,7 @@ fn init_capture_engine(
     }
 }
 
-fn capture_engine_prepare_sample_callback(
+pub(crate) fn capture_engine_prepare_sample_callback(
     capture_engine: &IMFCaptureEngine,
     sample_cb: &IMFCaptureEngineOnSampleCallback,
 ) -> Result<()> {
@@ -402,6 +402,8 @@ fn capture_engine_prepare_sample_callback(
         rgb_media_type.set_rgb32();
         let stream_index =
             preview_sink.AddStream(0, Some(&rgb_media_type.0), None).expect("AddStream");
+        // let stream_index = preview_sink.AddStream(0, None, None).expect("AddStream");
+
         preview_sink.SetSampleCallback(stream_index, Some(sample_cb)).expect("SetSampleCallback");
     }
     Ok(())
@@ -450,7 +452,7 @@ fn capture_engine_start_preview(
     }
 }
 
-fn capture_engine_sink_get_media_type(capture_engine: &IMFCaptureEngine) -> Result<MediaType> {
+pub fn capture_engine_sink_get_media_type(capture_engine: &IMFCaptureEngine) -> Result<MediaType> {
     Ok(MediaType(unsafe {
         capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?.GetOutputMediaType(0)?
     }))
@@ -460,7 +462,11 @@ fn capture_engine_stop_preview(capture_engine: &IMFCaptureEngine) -> Result<()> 
     unsafe { capture_engine.StopPreview() }
 }
 
-fn sample_to_locked_buffer(sample: &IMFSample, width: u32, height: u32) -> Result<LockedBuffer> {
+pub fn sample_to_locked_buffer(
+    sample: &IMFSample,
+    width: u32,
+    height: u32,
+) -> Result<LockedBuffer> {
     unsafe {
         let media_buffer = sample.ConvertToContiguousBuffer()?;
         let mf2d_buffer: IMF2DBuffer2 = windows::core::Interface::cast(&media_buffer)?;
@@ -488,7 +494,7 @@ fn sample_to_locked_buffer(sample: &IMFSample, width: u32, height: u32) -> Resul
 }
 
 #[derive(Debug)]
-struct LockedBuffer {
+pub struct LockedBuffer {
     buffer: IMF2DBuffer2,
     width: u32,
     height: u32,
@@ -563,7 +569,7 @@ impl IMFCaptureEngineOnEventCallback_Impl for CaptureEventCallback {
             status.message().to_string_lossy(),
             time
         );
-        self.event_tx.send(engine_event).unwrap();
+        let _ = self.event_tx.send(engine_event);
         Ok(())
     }
 }
@@ -610,7 +616,7 @@ impl From<i32> for StreamCategory {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-enum CaptureEngineEvent {
+pub(crate) enum CaptureEngineEvent {
     Initialized,
     Error,
     PreviewStarted,
@@ -655,13 +661,13 @@ impl From<&GUID> for CaptureEngineEvent {
 }
 
 #[implement(IMFCaptureEngineOnEventCallback)]
-struct CaptureEventCallback {
-    event_tx: Sender<CaptureEngineEvent>,
+pub(crate) struct CaptureEventCallback {
+    pub event_tx: Sender<CaptureEngineEvent>,
 }
 
 #[implement(IMFCaptureEngineOnSampleCallback)]
-struct CaptureSampleCallback {
-    sample_tx: Sender<Option<IMFSample>>,
+pub(crate) struct CaptureSampleCallback {
+    pub sample_tx: Sender<Option<IMFSample>>,
 }
 
 pub fn co_initialize_multithreaded() {
@@ -681,4 +687,8 @@ pub fn co_uninitialize() {
 
 pub fn co_mta_usage() {
     let _ = unsafe { CoIncrementMTAUsage() };
+}
+
+pub(crate) fn activate_to_media_source(activate: &IMFActivate) -> IMFMediaSource {
+    unsafe { activate.ActivateObject().unwrap() }
 }
