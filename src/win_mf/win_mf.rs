@@ -395,36 +395,14 @@ fn capture_engine_prepare_sample_callback(
 ) -> Result<()> {
     unsafe {
         let source = capture_engine.GetSource().expect("GetSource");
-
-        // TODO could get video capabilities
-        // TODO choose media_type from capabilities and requested format
-        let streams = source.GetDeviceStreamCount().expect("GetDeviceStreamCount");
-        for index in 0..streams {
-            let cat = source.GetDeviceStreamCategory(index).expect("GetDeviceStreamCategory");
-            let cat = StreamCategory::from(cat.0);
-            println!("{index} {cat:?}");
-        }
-
         let media_type = source.GetCurrentDeviceMediaType(0).expect("GetCurrentDeviceMediaType");
-        println!("Source {}", MediaType(media_type.clone()));
-
-        source.SetCurrentDeviceMediaType(0, &media_type).expect("SetCurrentDeviceMediaType");
-
         let sink = capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW).expect("GetSink");
-
         let preview_sink: IMFCapturePreviewSink = sink.cast().expect("CapturePreviewSink");
-
         let mut rgb_media_type = MediaType(media_type);
         rgb_media_type.set_rgb32();
-
         let stream_index =
             preview_sink.AddStream(0, Some(&rgb_media_type.0), None).expect("AddStream");
-        println!("Stream Index {stream_index}");
-
         preview_sink.SetSampleCallback(stream_index, Some(sample_cb)).expect("SetSampleCallback");
-
-        let output_media_type = MediaType(preview_sink.GetOutputMediaType(stream_index).unwrap());
-        println!("Output {output_media_type}");
     }
     Ok(())
 }
