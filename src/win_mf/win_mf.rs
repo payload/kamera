@@ -60,100 +60,6 @@ impl Device {
     }
 }
 
-pub struct Camera {
-    frame: Option<CameraFrame>,
-    engine: CaptureEngine,
-}
-
-impl Camera {
-    pub fn new() -> Self {
-        co_initialize_multithreaded();
-        media_foundation_startup().expect("media_foundation_startup");
-        let engine = CaptureEngine::new().unwrap();
-        Self { engine, frame: None }
-    }
-
-    pub fn from_device(device: &Device) -> Self {
-        co_initialize_multithreaded();
-        media_foundation_startup().expect("media_foundation_startup");
-        let mut engine = CaptureEngine::new().unwrap();
-        engine.init(Some(device.clone())).unwrap();
-        Self { engine, frame: None }
-    }
-
-    pub fn new_default_device() -> Self {
-        let devices = Device::enum_devices();
-        if let Some(device) = devices.first() {
-            Self::from_device(device)
-        } else {
-            Self::new()
-        }
-    }
-
-    pub fn device_name(&self) -> String {
-        self.engine.device_name()
-    }
-
-    pub fn set_device(&mut self, device: &Device) {
-        self.engine.init(Some(device.clone())).unwrap();
-    }
-
-    pub fn set_media_type(&mut self, media_type: &MediaType) {
-        self.engine.set_media_type(media_type).unwrap();
-    }
-
-    pub fn start(&self) {
-        self.engine.start_preview().unwrap();
-    }
-
-    pub fn prepare(&self) {
-        self.engine.prepare().unwrap();
-    }
-
-    pub fn just_start(&self) {
-        self.engine.just_start_preview().unwrap();
-    }
-
-    pub fn stop(&self) {
-        self.engine.stop_preview().unwrap();
-    }
-
-    pub fn get_frame(&mut self) -> Option<&CameraFrame> {
-        if let Some(sample) = self.engine.try_recv_sample() {
-            self.frame = Some(CameraFrame { sample });
-        }
-
-        self.frame.as_ref()
-    }
-
-    pub fn wait_frame(&mut self) -> Option<&CameraFrame> {
-        if let Some(sample) = self.engine.recv_sample() {
-            self.frame = Some(CameraFrame { sample });
-        }
-
-        self.frame.as_ref()
-    }
-
-    pub fn wait_for_next_frame(&self) -> Option<CameraFrame> {
-        // TODO smash together with the other frame functions
-        self.engine.recv_sample().map(|sample| CameraFrame { sample })
-    }
-}
-
-impl Drop for Camera {
-    fn drop(&mut self) {
-        println!("Camera.drop");
-        let _ = self.frame.take();
-        println!("Camera.drop done");
-    }
-}
-
-impl Default for Camera {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Debug)]
 pub struct CameraFrame {
     pub sample: LockedBuffer,
@@ -238,66 +144,7 @@ struct CaptureEngine {
     sample_rx: Receiver<Option<IMFSample>>,
 }
 
-impl Drop for CaptureEngine {
-    fn drop(&mut self) {
-        // media_foundation_shutdown().expect("media_foundation_shutdown");
-        println!("CaptureEngine.drop done");
-    }
-}
-
 impl CaptureEngine {
-    fn new() -> Result<Self> {
-        let engine = new_capture_engine()?;
-        let (event_tx, event_rx) = channel();
-        let (sample_tx, sample_rx) = channel();
-
-        Ok(Self {
-            device: None,
-            engine,
-            sample_media_type: None,
-            event_rx,
-            sample_rx,
-            event_cb: CaptureEventCallback { event_tx }.into(),
-            sample_cb: CaptureSampleCallback { sample_tx }.into(),
-        })
-    }
-
-    fn init(&mut self, device: Option<Device>) -> Result<()> {
-        self.device = device;
-        let media_source = self.device.as_ref().map(|d| &d.source);
-        init_capture_engine(&self.engine, media_source, &self.event_cb)?;
-        self.wait_for_event(CaptureEngineEvent::Initialized);
-        Ok(())
-    }
-
-    fn device_name(&self) -> String {
-        self.device.clone().map(|d| d.name()).unwrap_or_default()
-    }
-
-    fn start_preview(&self) -> Result<()> {
-        let _sample_media_type = capture_engine_start_preview(&self.engine, &self.sample_cb)?;
-        // self.sample_media_type = Some(sample_media_type);
-        self.wait_for_event(CaptureEngineEvent::PreviewStarted);
-        // PreviewStarted could be followed by Error before first Sample comes
-        // First sample takes for example 250 ms but first Error could come alread 3 ms after PreviewStarted.
-        // This is for example the case when the camera is already in use by another thread.
-        Ok(())
-    }
-
-    fn prepare(&self) -> Result<()> {
-        capture_engine_prepare_sample_callback(&self.engine, &self.sample_cb)
-    }
-
-    fn just_start_preview(&self) -> Result<()> {
-        unsafe { self.engine.StartPreview() }
-    }
-
-    fn stop_preview(&self) -> Result<()> {
-        capture_engine_stop_preview(&self.engine)?;
-        self.wait_for_event(CaptureEngineEvent::PreviewStopped);
-        Ok(())
-    }
-
     fn set_media_type(&mut self, media_type: &MediaType) -> Result<()> {
         unsafe {
             let source = self.engine.GetSource()?;
@@ -317,44 +164,6 @@ impl CaptureEngine {
         }
         self.sample_media_type = Some(media_type.clone());
         Ok(())
-    }
-
-    fn wait_for_event(&self, event: CaptureEngineEvent) {
-        self.event_rx.iter().find(|e| e == &event);
-    }
-
-    fn try_recv_sample(&self) -> Option<LockedBuffer> {
-        if let Ok(mt) = capture_engine_sink_get_media_type(&self.engine) {
-            let width = mt.frame_width();
-            let height = mt.frame_height();
-
-            let mut sample = None;
-            loop {
-                let next_sample = self.sample_rx.try_recv().ok();
-                if next_sample.is_some() {
-                    sample = next_sample;
-                } else {
-                    break;
-                }
-            }
-
-            sample.flatten().and_then(|sample| sample_to_locked_buffer(&sample, width, height).ok())
-        } else {
-            None
-        }
-    }
-
-    fn recv_sample(&self) -> Option<LockedBuffer> {
-        let Some(mt) = capture_engine_sink_get_media_type(&self.engine).ok() else {
-            return None;
-        };
-        let width = mt.frame_width();
-        let height = mt.frame_height();
-        self.sample_rx
-            .recv()
-            .ok()
-            .flatten()
-            .and_then(|sample| sample_to_locked_buffer(&sample, width, height).ok())
     }
 }
 
