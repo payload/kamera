@@ -3,7 +3,7 @@ use super::win_mf::*;
 #[test]
 fn device_enum_devices() {
     co_mta_usage();
-    assert!(Device::enum_devices().len() > 0);
+    assert!(!Device::enum_devices().is_empty());
 }
 
 fn first_device() -> Device {
@@ -15,7 +15,7 @@ fn device_name() {
     co_mta_usage();
     let name = first_device().name();
     println!("{name}");
-    assert!(name.len() > 0);
+    assert!(!name.is_empty());
 }
 
 #[test]
@@ -24,7 +24,7 @@ fn device_query_media_types() {
     let types: Vec<String> =
         first_device().query_media_types().into_iter().map(|d| d.to_string()).collect();
     println!("{types:?}");
-    assert!(types.len() > 0);
+    assert!(!types.is_empty());
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn device_query_media_types_with_best_fps() {
         .map(|d| d.to_string())
         .collect();
     println!("{types:?}");
-    assert!(types.len() > 0);
+    assert!(!types.is_empty());
 }
 
 #[test]
