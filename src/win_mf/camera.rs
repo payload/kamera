@@ -1,6 +1,6 @@
 use super::mf::*;
 
-use std::sync::mpsc::*;
+use std::{sync::mpsc::*, time::Duration};
 
 use windows::Win32::Media::MediaFoundation::*;
 
@@ -59,7 +59,8 @@ impl Camera {
 
     pub fn wait_for_frame(&self) -> Option<Frame> {
         self.sample_rx
-            .recv()
+            // TODO sometimes running two engines on the same camera breaks frame delivery, so wait not too long
+            .recv_timeout(Duration::from_secs(3))
             .ok()
             .flatten()
             .and_then(|sample| {
