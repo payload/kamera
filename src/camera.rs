@@ -39,7 +39,6 @@ impl Camera {
     }
 
     pub fn change_device(&mut self) {
-        #[cfg(target_os = "macos")]
         self.inner.change_device();
     }
 }

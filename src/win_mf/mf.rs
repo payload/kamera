@@ -10,12 +10,12 @@ use super::media_type::MediaType;
 
 #[derive(Clone, Debug)]
 pub struct Device {
-    activate: IMFActivate,
-    source: IMFMediaSource,
+    pub activate: IMFActivate,
+    pub source: IMFMediaSource,
 }
 
 impl Device {
-    fn new(activate: IMFActivate) -> Self {
+    pub(crate) fn new(activate: IMFActivate) -> Self {
         co_initialize_multithreaded();
         let source = unsafe { activate.ActivateObject().unwrap() };
         Self { activate, source }
@@ -31,7 +31,12 @@ impl PartialEq for Device {
 impl Drop for Device {
     fn drop(&mut self) {
         // unsafe { self.activate.ShutdownObject().unwrap() };
-        println!("Device.drop done");
+    }
+}
+
+impl std::fmt::Display for Device {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Device({})", self.name()))
     }
 }
 
@@ -420,8 +425,4 @@ pub fn co_initialize_multithreaded() {
 #[cfg(test)]
 pub fn co_mta_usage() {
     let _ = unsafe { CoIncrementMTAUsage() };
-}
-
-pub(crate) fn activate_to_media_source(activate: &IMFActivate) -> IMFMediaSource {
-    unsafe { activate.ActivateObject().unwrap() }
 }
