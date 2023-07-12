@@ -48,7 +48,7 @@ fn main() {
                 window.request_redraw();
             }
             Event::DeviceEvent {
-                event: DeviceEvent::Button { button: 0, state: ElementState::Released },
+                event: DeviceEvent::Button { button: _, state: ElementState::Released },
                 device_id: _,
             } => {
                 camera.change_device();

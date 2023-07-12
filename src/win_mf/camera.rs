@@ -8,8 +8,7 @@ use windows::Win32::Media::MediaFoundation::*;
 #[derive(Debug)]
 pub struct Camera {
     engine: IMFCaptureEngine,
-    device: IMFActivate,
-    media_source: IMFMediaSource,
+    device: mf::Device,
     event_rx: Receiver<CaptureEngineEvent>,
     sample_rx: Receiver<Option<IMFSample>>,
     event_cb: IMFCaptureEngineOnEventCallback,
@@ -36,14 +35,12 @@ impl Camera {
         let event_cb = CaptureEventCallback { event_tx }.into();
         let sample_cb = CaptureSampleCallback { sample_tx }.into();
 
-        let devices = enum_device_sources();
+        let devices = mf::Device::enum_devices();
         let Some(device) = devices.first().cloned() else { todo!() };
-        let media_source = activate_to_media_source(&device);
 
-        init_capture_engine(&engine, Some(&media_source), &event_cb).unwrap();
+        init_capture_engine(&engine, Some(&device.source), &event_cb).unwrap();
 
-        let camera =
-            Camera { engine, device, media_source, event_rx, sample_rx, event_cb, sample_cb };
+        let camera = Camera { engine, device, event_rx, sample_rx, event_cb, sample_cb };
         camera.wait_for_event(CaptureEngineEvent::Initialized);
         camera.prepare_source_sink();
         camera
@@ -72,6 +69,31 @@ impl Camera {
                 sample_to_locked_buffer(&sample, width, height).ok()
             })
             .map(|buffer: LockedBuffer| Frame { buffer })
+    }
+
+    pub fn change_device(&mut self) {
+        let devices: Vec<mf::Device> =
+            enum_device_sources().into_iter().map(mf::Device::new).collect();
+        let Some(index) = devices.iter().position(|d| d.id() == self.device.id()) else { return };
+        let new_index = (index + 1) % devices.len();
+
+        if new_index == index {
+            return;
+        }
+        let new_device = devices[new_index].clone();
+
+        let engine = new_capture_engine().unwrap();
+        let (event_tx, event_rx) = channel::<CaptureEngineEvent>();
+        let (sample_tx, sample_rx) = channel::<Option<IMFSample>>();
+        let event_cb = CaptureEventCallback { event_tx }.into();
+        let sample_cb = CaptureSampleCallback { sample_tx }.into();
+
+        init_capture_engine(&engine, Some(&new_device.source), &event_cb).unwrap();
+
+        *self = Camera { engine, device: new_device, event_rx, sample_rx, event_cb, sample_cb };
+        self.wait_for_event(CaptureEngineEvent::Initialized);
+        self.prepare_source_sink();
+        self.start(); // TODO watch out about playing state
     }
 }
 
