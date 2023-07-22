@@ -4,6 +4,9 @@ use super::mac_avf as backend;
 #[cfg(target_os = "windows")]
 use super::win_mf as backend;
 
+#[cfg(target_os = "linux")]
+use super::linux_v4l2 as backend;
+
 pub struct Camera {
     inner: backend::Camera,
 }
@@ -13,8 +16,8 @@ pub struct Frame {
     inner: backend::Frame,
 }
 
-pub struct FrameData<'a> {
-    inner: backend::FrameData<'a>,
+pub struct FrameData {
+    inner: backend::FrameData,
 }
 
 impl Camera {
@@ -45,7 +48,7 @@ impl Frame {
     }
 }
 
-impl<'a> FrameData<'a> {
+impl FrameData {
     pub fn data_u8(&self) -> &[u8] {
         self.inner.data_u8()
     }
@@ -53,4 +56,25 @@ impl<'a> FrameData<'a> {
     pub fn data_u32(&self) -> &[u32] {
         self.inner.data_u32()
     }
+}
+
+pub(crate) trait InnerCamera: std::fmt::Debug {
+    type Frame;
+
+    fn new_default_device() -> Self;
+    fn start(&self);
+    fn stop(&self);
+    fn wait_for_frame(&self) -> Option<Self::Frame>;
+}
+
+pub(crate) trait InnerFrame: std::fmt::Debug {
+    type FrameData;
+
+    fn data(&self) -> Self::FrameData;
+    fn size_u32(&self) -> (u32, u32);
+}
+
+pub(crate) trait InnerFrameData: std::fmt::Debug {
+    fn data_u8(&self) -> &[u8];
+    fn data_u32(&self) -> &[u32];
 }
