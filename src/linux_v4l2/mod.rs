@@ -49,7 +49,8 @@ impl InnerCamera for Camera {
         let size = device
             .enum_framesizes(fmt.fourcc)
             .unwrap()
-            .pop()
+            .into_iter()
+            .next()
             .unwrap()
             .size
             .to_discrete()
@@ -77,15 +78,16 @@ impl InnerCamera for Camera {
 
     fn wait_for_frame(&self) -> Option<Frame> {
         let format = self.device.read().unwrap().format().unwrap();
+        let size = (format.width, format.height);
         if let Ok((buf, _meta)) = self.stream.write().unwrap().as_mut().unwrap().next() {
             let data = match &format.fourcc.repr {
                 b"RGB3" => buf.to_vec(),
-                b"YUYV" => yuyv_to_rgb32(buf, 1280, 1024),
+                b"YUYV" => yuyv_to_rgb32(buf, size.0, size.1),
                 b"MJPG" => todo!("NJPG not implemented"),
                 _ => panic!("invalid buffer pixelformat"),
             };
 
-            Some(Frame { data })
+            Some(Frame { data, size })
         } else {
             None
         }
@@ -100,6 +102,7 @@ impl std::fmt::Debug for Camera {
 
 pub struct Frame {
     data: Vec<u8>,
+    size: (u32, u32),
 }
 
 impl InnerFrame for Frame {
@@ -110,7 +113,7 @@ impl InnerFrame for Frame {
     }
 
     fn size_u32(&self) -> (u32, u32) {
-        (1280, 1024)
+        self.size
     }
 }
 
@@ -135,11 +138,7 @@ impl InnerFrameData for FrameData {
     }
 }
 
-fn yuyv_to_rgb32(buf: &[u8], w: usize, h: usize) -> Vec<u8> {
-    println!("{} {} {}", buf.len(), w * h, w * h + w * h);
-    let w = w as u32;
-    let h = h as u32;
-
+fn yuyv_to_rgb32(buf: &[u8], w: u32, h: u32) -> Vec<u8> {
     use ffimage::color::Rgb;
     use ffimage::packed::{ImageBuffer, ImageView};
     use ffimage::traits::Convert;
