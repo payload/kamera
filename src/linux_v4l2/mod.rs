@@ -1,3 +1,4 @@
+use ffimage::color::{Bgra, Rgba};
 use v4l;
 use v4l::io::traits::CaptureStream;
 use v4l::prelude::*;
@@ -76,10 +77,10 @@ impl InnerCamera for Camera {
 
     fn wait_for_frame(&self) -> Option<Frame> {
         let format = self.device.read().unwrap().format().unwrap();
-        if let Ok((buf, meta)) = self.stream.write().unwrap().as_mut().unwrap().next() {
+        if let Ok((buf, _meta)) = self.stream.write().unwrap().as_mut().unwrap().next() {
             let data = match &format.fourcc.repr {
                 b"RGB3" => buf.to_vec(),
-                b"YUYV" => vec![],
+                b"YUYV" => yuyv_to_rgb32(buf, 1280, 1024),
                 b"MJPG" => todo!("NJPG not implemented"),
                 _ => panic!("invalid buffer pixelformat"),
             };
@@ -97,7 +98,6 @@ impl std::fmt::Debug for Camera {
     }
 }
 
-#[derive(Debug)]
 pub struct Frame {
     data: Vec<u8>,
 }
@@ -114,6 +114,12 @@ impl InnerFrame for Frame {
     }
 }
 
+impl std::fmt::Debug for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Frame").field("data", &self.data.len()).finish()
+    }
+}
+
 #[derive(Debug)]
 pub struct FrameData {
     data: Vec<u8>,
@@ -127,4 +133,25 @@ impl InnerFrameData for FrameData {
     fn data_u32(&self) -> &[u32] {
         unsafe { self.data.align_to().1 }
     }
+}
+
+fn yuyv_to_rgb32(buf: &[u8], w: usize, h: usize) -> Vec<u8> {
+    println!("{} {} {}", buf.len(), w * h, w * h + w * h);
+    let w = w as u32;
+    let h = h as u32;
+
+    use ffimage::color::Rgb;
+    use ffimage::packed::{ImageBuffer, ImageView};
+    use ffimage::traits::Convert;
+    use ffimage_yuv::{yuv::Yuv, yuyv::Yuyv};
+
+    let yuv422 = ImageView::<Yuyv<u8>>::from_buf(buf, w, h).unwrap();
+    let mut yuv444 = ImageBuffer::<Yuv<u8>>::new(w, h, 0u8);
+    let mut rgb = ImageBuffer::<Rgb<u8>>::new(w, h, 0u8);
+    let mut rgba = ImageBuffer::<Bgra<u8>>::new(w, h, 0u8);
+    yuv422.convert(&mut yuv444);
+    yuv444.convert(&mut rgb);
+    rgb.convert(&mut rgba);
+
+    rgba.into_buf()
 }
