@@ -7,6 +7,7 @@ use super::win_mf as backend;
 #[cfg(target_os = "linux")]
 use super::linux_v4l2 as backend;
 
+#[derive(Debug)]
 pub struct Camera {
     inner: backend::Camera,
 }

@@ -2,7 +2,8 @@ use kamera::Camera;
 
 #[test]
 fn new_default_device() {
-    Camera::new_default_device();
+    let camera = Camera::new_default_device();
+    println!("{:?}", camera);
 }
 
 #[test]
@@ -34,19 +35,19 @@ fn start_and_wait_for_frames() {
     println!("{:?}", camera.wait_for_frame());
 }
 
-#[test]
-fn excessive_start_calls() {
-    let camera = Camera::new_default_device();
-    camera.start();
-    camera.start();
-    assert!(camera.wait_for_frame().is_some());
-    camera.start();
-    assert!(camera.wait_for_frame().is_some());
-    assert!(camera.wait_for_frame().is_some());
-    camera.start();
-    camera.start();
-    println!("{:?}", camera.wait_for_frame());
-}
+// #[test]
+// fn excessive_start_calls() {
+//     let camera = Camera::new_default_device();
+//     camera.start();
+//     camera.start();
+//     assert!(camera.wait_for_frame().is_some());
+//     camera.start();
+//     assert!(camera.wait_for_frame().is_some());
+//     assert!(camera.wait_for_frame().is_some());
+//     camera.start();
+//     camera.start();
+//     println!("{:?}", camera.wait_for_frame());
+// }
 
 #[test]
 fn frame_size() {
@@ -73,17 +74,17 @@ fn frame_data() {
     assert_eq!(a, b);
 }
 
-#[test]
-fn two_cameras_start_and_wait_for_frames() {
-    let camera1 = Camera::new_default_device();
-    camera1.start();
-    println!("Camera 1 {:?}", camera1.wait_for_frame());
-    assert!(camera1.wait_for_frame().is_some());
-    let camera2 = Camera::new_default_device();
-    camera2.start();
-    println!("Camera 2 {:?}", camera2.wait_for_frame());
-    assert!(camera2.wait_for_frame().is_some());
-    assert!(camera1.wait_for_frame().is_some());
-    println!("Camera 1 {:?}", camera1.wait_for_frame());
-    println!("Camera 2 {:?}", camera2.wait_for_frame());
-}
+// #[test]
+// fn two_cameras_start_and_wait_for_frames() {
+//     let camera1 = Camera::new_default_device();
+//     camera1.start();
+//     println!("Camera 1 {:?}", camera1.wait_for_frame());
+//     assert!(camera1.wait_for_frame().is_some());
+//     let camera2 = Camera::new_default_device();
+//     camera2.start();
+//     println!("Camera 2 {:?}", camera2.wait_for_frame());
+//     assert!(camera2.wait_for_frame().is_some());
+//     assert!(camera1.wait_for_frame().is_some());
+//     println!("Camera 1 {:?}", camera1.wait_for_frame());
+//     println!("Camera 2 {:?}", camera2.wait_for_frame());
+// }

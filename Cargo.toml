@@ -31,6 +31,9 @@ windows = { version = "0.43", features = [
     "implement",
 ] }
 
+[target.'cfg(target_os="linux")'.dependencies]
+v4l = "*"
+
 [dev-dependencies]
 softbuffer = "0.3.0"
 winit = "0.27.5"

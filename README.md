@@ -27,3 +27,15 @@ frame.data().data_u32() // use this buffer, per default in ARGB format
 
 camera.stop() // or drop it
 ```
+
+## Linux system dependecies
+
+On a Debian like system (MX Linux for example) I needed to install these system dependencies to build all crates:
+
+```sh
+sudo apt install build-essentials cmake libfontconfig1-dev clang
+```
+
+* TODO winit depends on sctk-adwaita which transitively also is depending on freetype for font rendering. I think
+  * winit probably does not have a real need to do font rendering in a default or minimal configuration
+  * basic font rendering could also be done by a pure rust dependency
