@@ -59,17 +59,22 @@ impl InnerCamera for Camera {
             .unwrap();
         fmt.width = size.width;
         fmt.height = size.height;
-        let fmt = device.set_format(&fmt).expect("Failed to write format");
+
+        if let Err(error) = device.set_format(&fmt) {
+            eprintln!("Device.set_format: {}", error);
+        }
 
         Self { device: RwLock::new(device), device_name, stream: RwLock::new(None) }
     }
 
     fn start(&self) {
-        let device = self.device.write().unwrap();
-        let stream =
-            v4l::io::mmap::Stream::with_buffers(&device, v4l::buffer::Type::VideoCapture, 4)
-                .expect("Failed to create buffer stream");
-        let _ = self.stream.write().unwrap().insert(stream);
+        if self.stream.read().unwrap().is_none() {
+            let device = self.device.write().unwrap();
+            let stream =
+                v4l::io::mmap::Stream::with_buffers(&device, v4l::buffer::Type::VideoCapture, 4)
+                    .expect("Failed to create buffer stream");
+            let _ = self.stream.write().unwrap().insert(stream);
+        }
     }
 
     fn stop(&self) {
