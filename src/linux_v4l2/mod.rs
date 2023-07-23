@@ -1,15 +1,11 @@
-use ffimage::color::{Bgra, Rgba};
-use v4l;
+use ffimage::color::Bgra;
+
 use v4l::io::traits::CaptureStream;
-use v4l::prelude::*;
-use v4l::video::capture::Parameters;
+
 use v4l::video::Capture;
 use v4l::*;
 
-use std::{
-    sync::{mpsc::*, RwLock},
-    thread,
-};
+use std::sync::RwLock;
 
 use crate::{InnerCamera, InnerFrame, InnerFrameData};
 
@@ -34,7 +30,7 @@ impl InnerCamera for Camera {
             device_node.path()
         );
 
-        let mut device = v4l::Device::new(0).unwrap();
+        let device = v4l::Device::new(0).unwrap();
 
         for fmt in device.enum_formats().unwrap() {
             println!("{:?}", fmt);
@@ -44,7 +40,7 @@ impl InnerCamera for Camera {
             }
         }
 
-        let rgb = FourCC::new(b"RGB3");
+        let _rgb = FourCC::new(b"RGB3");
         let mut fmt = device.format().unwrap();
         let size = device
             .enum_framesizes(fmt.fourcc)
