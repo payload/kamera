@@ -37,3 +37,7 @@ v4l = "*"
 [dev-dependencies]
 softbuffer = "0.3.0"
 winit = "0.27.5"
+
+[dependencies]
+ffimage = "0.9.0"
+ffimage_yuv = "0.9.0"
