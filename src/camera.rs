@@ -17,8 +17,8 @@ pub struct Frame {
     inner: backend::Frame,
 }
 
-pub struct FrameData {
-    inner: backend::FrameData,
+pub struct FrameData<'a> {
+    inner: backend::FrameData<'a>,
 }
 
 impl Camera {
@@ -49,7 +49,7 @@ impl Frame {
     }
 }
 
-impl FrameData {
+impl<'a> FrameData<'a> {
     pub fn data_u8(&self) -> &[u8] {
         self.inner.data_u8()
     }
