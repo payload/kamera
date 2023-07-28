@@ -5,6 +5,7 @@ use v4l::io::traits::CaptureStream;
 use v4l::video::Capture;
 use v4l::*;
 
+use std::marker::PhantomData;
 use std::sync::RwLock;
 
 use crate::InnerCamera;
@@ -108,7 +109,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn data(&self) -> FrameData {
-        FrameData { data: self.data.clone() }
+        FrameData { data: self.data.clone(), _phantom: PhantomData::default() }
     }
 
     pub fn size_u32(&self) -> (u32, u32) {
@@ -123,11 +124,12 @@ impl std::fmt::Debug for Frame {
 }
 
 #[derive(Debug)]
-pub struct FrameData {
+pub struct FrameData<'a> {
     data: Vec<u8>,
+    _phantom: PhantomData<&'a ()>,
 }
 
-impl FrameData {
+impl<'a> FrameData<'a> {
     pub fn data_u8(&self) -> &[u8] {
         &self.data
     }
