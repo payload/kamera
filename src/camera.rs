@@ -67,15 +67,3 @@ pub(crate) trait InnerCamera: std::fmt::Debug {
     fn stop(&self);
     fn wait_for_frame(&self) -> Option<Self::Frame>;
 }
-
-pub(crate) trait InnerFrame: std::fmt::Debug {
-    type FrameData;
-
-    fn data(&self) -> Self::FrameData;
-    fn size_u32(&self) -> (u32, u32);
-}
-
-pub(crate) trait InnerFrameData: std::fmt::Debug {
-    fn data_u8(&self) -> &[u8];
-    fn data_u32(&self) -> &[u32];
-}
