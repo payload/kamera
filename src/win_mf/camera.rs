@@ -10,6 +10,7 @@ use std::sync::mpsc::*;
 use windows::Win32::Media::MediaFoundation::*;
 
 #[allow(unused)]
+#[derive(Debug)]
 pub struct Camera {
     engine: IMFCaptureEngine,
     device: IMFActivate,
