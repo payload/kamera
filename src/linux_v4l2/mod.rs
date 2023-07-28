@@ -109,7 +109,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn data(&self) -> FrameData {
-        FrameData { data: self.data.clone(), _phantom: PhantomData::default() }
+        FrameData { data: self.data.clone(), _phantom: PhantomData }
     }
 
     pub fn size_u32(&self) -> (u32, u32) {
