@@ -6,12 +6,15 @@
 
 Camera API with a reduced feature set for basic usecases and learning.
 
-* ❌ Linux, Web, Android, iOS and various embedded support is not existent yet.
-* 🚧 Mac support is based on AVFoundation and is not behind the Camera API yet.
-    * its good to review test print outs too `cargo t -- --nocapture --test-threads=1`
-* 🚧 Windows support is based on MediaFoundation.
-    * tests need to run with a single thread `cargo t -- --test-threads=1`
-* ❌ CI is manual running tests on Mac and Windows with various camera devices.
+* 🚧 Mac support is based on AVFoundation
+* 🚧 Windows support is based on MediaFoundation
+* 🚧 Linux support is based on V4L2
+
+* ❌ tests need to run with a single thread `cargo t -- --test-threads=1 --nocapture`
+  and it is good to review the output of the test cases
+
+* ✔️ PR check is manual running tests on Mac, Windows and Linux laptop internal camera device and a Logitech external camera
+* ✔️ CI runs checks, formatting and clippy for main and PRs
 
 ```rust
 use kamera::Camera;
