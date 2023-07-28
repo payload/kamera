@@ -2,6 +2,7 @@ use super::*;
 use objc2::rc::Id;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Camera {
     _device: Id<AVCaptureDevice>,
     _input: Id<AVCaptureDeviceInput>,
