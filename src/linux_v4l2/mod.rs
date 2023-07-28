@@ -7,7 +7,7 @@ use v4l::*;
 
 use std::sync::RwLock;
 
-use crate::{InnerCamera, InnerFrame, InnerFrameData};
+use crate::InnerCamera;
 
 pub struct Camera {
     device: RwLock<v4l::Device>,
@@ -106,14 +106,12 @@ pub struct Frame {
     size: (u32, u32),
 }
 
-impl InnerFrame for Frame {
-    type FrameData = FrameData;
-
-    fn data(&self) -> FrameData {
+impl Frame {
+    pub fn data(&self) -> FrameData {
         FrameData { data: self.data.clone() }
     }
 
-    fn size_u32(&self) -> (u32, u32) {
+    pub fn size_u32(&self) -> (u32, u32) {
         self.size
     }
 }
@@ -129,12 +127,12 @@ pub struct FrameData {
     data: Vec<u8>,
 }
 
-impl InnerFrameData for FrameData {
-    fn data_u8(&self) -> &[u8] {
+impl FrameData {
+    pub fn data_u8(&self) -> &[u8] {
         &self.data
     }
 
-    fn data_u32(&self) -> &[u32] {
+    pub fn data_u32(&self) -> &[u32] {
         unsafe { self.data.align_to().1 }
     }
 }
