@@ -1,9 +1,4 @@
-use super::mf::{
-    self, activate_to_media_source, capture_engine_prepare_sample_callback,
-    capture_engine_sink_get_media_type, capture_engine_stop_preview, co_initialize_multithreaded,
-    enum_device_sources, init_capture_engine, new_capture_engine, sample_to_locked_buffer,
-    CameraFrame, CaptureEngineEvent, CaptureEventCallback, CaptureSampleCallback,
-};
+use super::mf::*;
 
 use std::sync::mpsc::*;
 
@@ -23,7 +18,7 @@ pub struct Camera {
 
 #[derive(Debug)]
 pub struct Frame {
-    frame: mf::CameraFrame,
+    buffer: LockedBuffer,
 }
 
 pub struct FrameData<'a> {
@@ -33,7 +28,7 @@ pub struct FrameData<'a> {
 impl Camera {
     pub fn new_default_device() -> Self {
         co_initialize_multithreaded();
-        mf::media_foundation_startup().expect("media_foundation_startup");
+        media_foundation_startup().expect("media_foundation_startup");
 
         let engine = new_capture_engine().unwrap();
         let (event_tx, event_rx) = channel::<CaptureEngineEvent>();
@@ -75,8 +70,7 @@ impl Camera {
                 let height = mt.frame_height();
                 sample_to_locked_buffer(&sample, width, height).ok()
             })
-            .map(|sample| CameraFrame { sample })
-            .map(|frame| Frame { frame })
+            .map(|buffer: LockedBuffer| Frame { buffer })
     }
 }
 
@@ -92,11 +86,11 @@ impl Camera {
 
 impl Frame {
     pub fn data(&self) -> FrameData {
-        FrameData { data: self.frame.data() }
+        FrameData { data: self.buffer.data() }
     }
 
     pub fn size_u32(&self) -> (u32, u32) {
-        self.frame.size_u32()
+        (self.buffer.width, self.buffer.height)
     }
 }
 

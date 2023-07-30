@@ -74,8 +74,9 @@ fn frame_data() {
     assert_eq!(a, b);
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
 // linux_v4l2: ioctl VIDIOC_REQBUFS fails with Device Busy, Chromium also fails in this case, no alternative on this level
+// win_mf: fails to get frames because "The video recording device is preempted by another immersice application"
 #[test]
 fn two_cameras_start_and_wait_for_frames() {
     let camera1 = Camera::new_default_device();
