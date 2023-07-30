@@ -61,27 +61,6 @@ impl Device {
     }
 }
 
-#[derive(Debug)]
-pub struct CameraFrame {
-    pub sample: LockedBuffer,
-}
-
-impl CameraFrame {
-    pub fn data(&self) -> &[u8] {
-        self.sample.data()
-    }
-
-    pub fn size_u32(&self) -> (u32, u32) {
-        (self.sample.width, self.sample.height)
-    }
-}
-
-impl std::fmt::Display for CameraFrame {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}x{} {}", self.sample.width, self.sample.height, self.sample.len)
-    }
-}
-
 pub(crate) fn enum_device_sources() -> Vec<IMFActivate> {
     unsafe {
         let source_type = &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE;
@@ -248,14 +227,14 @@ pub fn sample_to_locked_buffer(
 #[derive(Debug)]
 pub struct LockedBuffer {
     buffer: IMF2DBuffer2,
-    width: u32,
-    height: u32,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
     scanline0: *mut u8,
     len: usize,
 }
 
 impl LockedBuffer {
-    fn data(&self) -> &[u8] {
+    pub(crate) fn data(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.scanline0, self.len) }
     }
 }
