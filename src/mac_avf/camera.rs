@@ -51,17 +51,20 @@ impl Camera {
 
     pub fn change_device(&mut self) {
         let devices = AVCaptureDevice::all_video_devices();
-        let Some(index) = devices.iter().position(|d| d.unique_id() == self.device.unique_id()) else { return };
+        let Some(index) = devices.iter().position(|d| d.unique_id() == self.device.unique_id())
+        else {
+            return;
+        };
         let new_index = (index + 1) % devices.len();
         if new_index == index {
             return;
         }
         let new_device = devices[new_index].retain();
-        let new_input = AVCaptureDeviceInput::from_device(&*new_device).unwrap();
-        self.session.remove_input(&*self.input);
+        let new_input = AVCaptureDeviceInput::from_device(&new_device).unwrap();
+        self.session.remove_input(&self.input);
         self.device = new_device;
         self.input = new_input;
-        self.session.add_input(&*self.input);
+        self.session.add_input(&self.input);
     }
 }
 
