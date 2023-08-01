@@ -70,4 +70,5 @@ pub(crate) trait InnerCamera: std::fmt::Debug {
     fn start(&self);
     fn stop(&self);
     fn wait_for_frame(&self) -> Option<Self::Frame>;
+    fn change_device(&mut self);
 }

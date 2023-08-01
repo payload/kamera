@@ -1,11 +1,13 @@
 use ffimage::color::Bgra;
 
+use v4l::context::Node;
 use v4l::io::traits::CaptureStream;
 
 use v4l::video::Capture;
 use v4l::*;
 
 use std::marker::PhantomData;
+
 use std::sync::RwLock;
 
 use crate::InnerCamera;
@@ -16,52 +18,78 @@ pub struct Camera {
     stream: RwLock<Option<v4l::io::mmap::Stream<'static>>>,
 }
 
+fn name_or_path(device_node: &v4l::context::Node) -> String {
+    device_node.name().unwrap_or_else(|| device_node.path().to_string_lossy().to_string())
+}
+
+fn get_next_best_format(device: &Device) -> Format {
+    let _rgb = FourCC::new(b"RGB3");
+    let mut fmt = device.format().expect("device.format()");
+    let size = device
+        .enum_framesizes(fmt.fourcc)
+        .unwrap()
+        .into_iter()
+        .next()
+        .unwrap()
+        .size
+        .to_discrete()
+        .into_iter()
+        .last()
+        .unwrap();
+    fmt.width = size.width;
+    fmt.height = size.height;
+    fmt
+}
+
+#[allow(unused)]
+fn display_node(node: &Node) {
+    println!(
+        "Node {{ index: {}, name: {:?}, path: {:?} }}",
+        node.index(),
+        node.name(),
+        node.path()
+    );
+}
+
+#[allow(unused)]
+fn display_device_formats(device: &Device) {
+    println!("Device formats:");
+    for fmt in device.enum_formats().unwrap() {
+        println!("  {:?}", fmt);
+
+        for size in device.enum_framesizes(fmt.fourcc).unwrap() {
+            println!("  {:?}", size);
+        }
+    }
+}
+
+fn enum_devices() -> Vec<Node> {
+    v4l::context::enum_devices()
+        .into_iter()
+        .filter_map(|node| Device::with_path(node.path()).ok().map(|device| (node, device)))
+        .filter(|(_, device)| device.format().is_ok())
+        .map(|(node, _)| node)
+        .collect()
+}
+
+impl Camera {
+    fn from_node(node: &v4l::context::Node) -> Self {
+        let device = v4l::Device::with_path(node.path()).unwrap();
+        device.set_format(&get_next_best_format(&device)).unwrap();
+        Self {
+            device: RwLock::new(device),
+            device_name: name_or_path(node),
+            stream: RwLock::new(None),
+        }
+    }
+}
+
 impl InnerCamera for Camera {
     type Frame = Frame;
 
     fn new_default_device() -> Self {
-        let device_node = v4l::context::enum_devices().into_iter().next().unwrap();
-        let device_name =
-            device_node.name().unwrap_or_else(|| device_node.path().to_string_lossy().to_string());
-
-        println!(
-            "Node {{ index: {}, name: {:?}, path: {:?} }}",
-            device_node.index(),
-            device_node.name(),
-            device_node.path()
-        );
-
-        let device = v4l::Device::new(0).unwrap();
-
-        for fmt in device.enum_formats().unwrap() {
-            println!("{:?}", fmt);
-
-            for size in device.enum_framesizes(fmt.fourcc).unwrap() {
-                println!("{:?}", size);
-            }
-        }
-
-        let _rgb = FourCC::new(b"RGB3");
-        let mut fmt = device.format().unwrap();
-        let size = device
-            .enum_framesizes(fmt.fourcc)
-            .unwrap()
-            .into_iter()
-            .next()
-            .unwrap()
-            .size
-            .to_discrete()
-            .into_iter()
-            .last()
-            .unwrap();
-        fmt.width = size.width;
-        fmt.height = size.height;
-
-        if let Err(error) = device.set_format(&fmt) {
-            eprintln!("Device.set_format: {}", error);
-        }
-
-        Self { device: RwLock::new(device), device_name, stream: RwLock::new(None) }
+        let node = enum_devices().into_iter().next().unwrap();
+        Self::from_node(&node)
     }
 
     fn start(&self) {
@@ -92,6 +120,22 @@ impl InnerCamera for Camera {
             Some(Frame { data, size })
         } else {
             None
+        }
+    }
+
+    fn change_device(&mut self) {
+        let devices = enum_devices();
+        if let Some(pos) = devices.iter().position(|n| name_or_path(n) == self.device_name) {
+            let new_pos = (pos + 1) % devices.len();
+            if new_pos != pos {
+                *self = Self::from_node(&devices[new_pos]);
+                self.start();
+            }
+        } else if !devices.is_empty() {
+            *self = Self::from_node(&devices[0]);
+            self.start();
+        } else {
+            self.stop();
         }
     }
 }
