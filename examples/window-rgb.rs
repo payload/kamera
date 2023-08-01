@@ -23,9 +23,7 @@ fn main() {
 
         match event {
             Event::RedrawRequested(window_id) if window_id == window.id() => {
-                let Some(frame) = camera.wait_for_frame() else {
-                    return
-                };
+                let Some(frame) = camera.wait_for_frame() else { return };
                 let (w, h) = frame.size_u32();
 
                 surface.resize(NonZeroU32::new(w).unwrap(), NonZeroU32::new(h).unwrap()).unwrap();

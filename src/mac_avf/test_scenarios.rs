@@ -132,7 +132,7 @@ fn running_capture_session_from_changing_cameras() {
     let delegate = SampleBufferDelegate::new();
     let slot = delegate.slot();
     output.set_sample_buffer_delegate(delegate);
-    session.add_output(&*output);
+    session.add_output(&output);
 
     let mut input: Option<Id<AVCaptureDeviceInput>> = None;
 
@@ -142,11 +142,11 @@ fn running_capture_session_from_changing_cameras() {
         println!("{}", device.localized_name());
 
         if let Some(input) = input {
-            session.remove_input(&*input);
+            session.remove_input(&input);
         }
 
         let new_input = AVCaptureDeviceInput::from_device(&device).unwrap();
-        session.add_input(&*new_input);
+        session.add_input(&new_input);
         input = Some(new_input);
 
         std::iter::from_fn(|| slot.wait_for_sample())
