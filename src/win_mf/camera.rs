@@ -8,7 +8,7 @@ use windows::Win32::Media::MediaFoundation::*;
 #[derive(Debug)]
 pub struct Camera {
     engine: IMFCaptureEngine,
-    device: mf::Device,
+    device: Device,
     event_rx: Receiver<CaptureEngineEvent>,
     sample_rx: Receiver<Option<IMFSample>>,
     event_cb: IMFCaptureEngineOnEventCallback,
@@ -35,7 +35,7 @@ impl Camera {
         let event_cb = CaptureEventCallback { event_tx }.into();
         let sample_cb = CaptureSampleCallback { sample_tx }.into();
 
-        let devices = mf::Device::enum_devices();
+        let devices = Device::enum_devices();
         let Some(device) = devices.first().cloned() else { todo!() };
 
         init_capture_engine(&engine, Some(&device.source), &event_cb).unwrap();
@@ -72,8 +72,7 @@ impl Camera {
     }
 
     pub fn change_device(&mut self) {
-        let devices: Vec<mf::Device> =
-            enum_device_sources().into_iter().map(mf::Device::new).collect();
+        let devices: Vec<Device> = enum_device_sources().into_iter().map(Device::new).collect();
         let Some(index) = devices.iter().position(|d| d.id() == self.device.id()) else { return };
         let new_index = (index + 1) % devices.len();
 
