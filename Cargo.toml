@@ -10,16 +10,16 @@ documentation = "https://docs.rs/kamera"
 repository = "https://github.com/payload/kamera"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-icrate = { version = "0.0.3", features = [
+icrate = { version = "*", features = [
     "Foundation",
     "Foundation_NSArray",
     "Foundation_NSNumber",
     "Foundation_NSMutableDictionary",
 ] }
-objc2 = { version = "0.4.0", features = ["malloc"] }
+objc2 = { version = "0.4", features = ["malloc"] }
 
 [target.'cfg(target_os="windows")'.dependencies]
-windows = { version = "0.43", features = [
+windows = { version = "*", features = [
     "Win32_Media_MediaFoundation",
     "Win32_System_Com",
     "Win32_Foundation",
@@ -32,10 +32,10 @@ windows = { version = "0.43", features = [
 ] }
 
 [target.'cfg(target_os="linux")'.dependencies]
-v4l = "0.14.0"
-ffimage = "0.9.0"
-ffimage_yuv = "0.9.0"
+v4l = "0.14"
+ffimage = "0.9"
+ffimage_yuv = "0.9"
 
 [dev-dependencies]
-softbuffer = "0.3.0"
-winit = "0.27.5"
+softbuffer = "0.3"
+winit = "0.28"
