@@ -293,6 +293,7 @@ fn capture_source_collect_available_device_media_types(
 }
 
 impl IMFCaptureEngineOnEventCallback_Impl for CaptureEventCallback {
+    #[allow(non_snake_case)]
     fn OnEvent(&self, event: &Option<IMFMediaEvent>) -> windows::core::Result<()> {
         let Some(event) = event else { return Ok(()) };
         let guid = unsafe { event.GetExtendedType().unwrap() };
@@ -311,6 +312,7 @@ impl IMFCaptureEngineOnEventCallback_Impl for CaptureEventCallback {
 }
 
 impl IMFCaptureEngineOnSampleCallback_Impl for CaptureSampleCallback {
+    #[allow(non_snake_case)]
     fn OnSample(&self, sample: &core::option::Option<IMFSample>) -> windows::core::Result<()> {
         // if let Some(sample) = sample {
         //     let len = unsafe { sample.GetTotalLength().unwrap() };
