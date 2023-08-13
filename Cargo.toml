@@ -39,4 +39,4 @@ ffimage_yuv = "0.9"
 [dev-dependencies]
 softbuffer = "0.3"
 winit = "0.28"
-iced = { path = "../iced", features = ["advanced", "image"] }
+iced = { version = "0.10", features = ["advanced", "image"] }

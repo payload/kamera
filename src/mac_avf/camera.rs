@@ -1,4 +1,5 @@
 use super::*;
+use crate::CameraInfo;
 use objc2::rc::Id;
 use std::sync::Arc;
 
@@ -35,6 +36,16 @@ impl Camera {
         session.add_output(&output);
 
         Camera { device, input, output, session, slot }
+    }
+
+    pub fn enumerate_cameras() -> Vec<CameraInfo> {
+        AVCaptureDevice::all_video_devices()
+            .iter()
+            .map(|d| CameraInfo {
+                device_id: d.unique_id().to_string(),
+                label: d.localized_name().to_string(),
+            })
+            .collect()
     }
 
     pub fn start(&self) {
