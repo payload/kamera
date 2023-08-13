@@ -19,7 +19,7 @@ icrate = { version = "*", features = [
 objc2 = { version = "0.4", features = ["malloc"] }
 
 [target.'cfg(target_os="windows")'.dependencies]
-windows = { version = "*", features = [
+windows = { version = "0.48", features = [
     "Win32_Media_MediaFoundation",
     "Win32_System_Com",
     "Win32_Foundation",
@@ -39,4 +39,4 @@ ffimage_yuv = "0.9"
 [dev-dependencies]
 softbuffer = "0.3"
 winit = "0.28"
-iced = { path = "../iced", default-features = false, features = ["advanced", "image"] }
+iced = { path = "../iced", features = ["advanced", "image"] }

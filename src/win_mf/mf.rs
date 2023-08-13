@@ -125,7 +125,8 @@ pub(crate) fn _capture_engine_change_media_type(
         sink.RemoveAllStreams()?;
         let mut rgb_media_type = media_type.clone();
         rgb_media_type.set_rgb32();
-        let stream_index = sink.AddStream(0, Some(&media_type.0), None)?;
+        let mut stream_index = 0;
+        sink.AddStream(0, Some(&media_type.0), None, Some(&mut stream_index))?;
 
         // TODO maybe changing the sample callback is not necessary when the stream_index is the same?
         let (sample_tx, _sample_rx) = channel();
@@ -179,8 +180,10 @@ pub(crate) fn capture_engine_prepare_sample_callback(
         let preview_sink: IMFCapturePreviewSink = sink.cast().expect("CapturePreviewSink");
         let mut rgb_media_type = MediaType(media_type);
         rgb_media_type.set_rgb32();
-        let stream_index =
-            preview_sink.AddStream(0, Some(&rgb_media_type.0), None).expect("AddStream");
+        let mut stream_index = 0;
+        preview_sink
+            .AddStream(0, Some(&rgb_media_type.0), None, Some(&mut stream_index))
+            .expect("AddStream");
         // let stream_index = preview_sink.AddStream(0, None, None).expect("AddStream");
 
         preview_sink.SetSampleCallback(stream_index, Some(sample_cb)).expect("SetSampleCallback");
@@ -189,9 +192,13 @@ pub(crate) fn capture_engine_prepare_sample_callback(
 }
 
 pub fn capture_engine_sink_get_media_type(capture_engine: &IMFCaptureEngine) -> Result<MediaType> {
-    Ok(MediaType(unsafe {
-        capture_engine.GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?.GetOutputMediaType(0)?
-    }))
+    let mut t = None;
+    unsafe {
+        capture_engine
+            .GetSink(MF_CAPTURE_ENGINE_SINK_TYPE_PREVIEW)?
+            .GetOutputMediaType(0, Some(&mut t))?;
+    };
+    Ok(MediaType(t.unwrap()))
 }
 
 pub(crate) fn capture_engine_stop_preview(capture_engine: &IMFCaptureEngine) -> Result<()> {
@@ -205,7 +212,7 @@ pub fn sample_to_locked_buffer(
 ) -> Result<LockedBuffer> {
     unsafe {
         let media_buffer = sample.ConvertToContiguousBuffer()?;
-        let mf2d_buffer: IMF2DBuffer2 = windows::core::Interface::cast(&media_buffer)?;
+        let mf2d_buffer: IMF2DBuffer2 = windows::core::ComInterface::cast(&media_buffer)?;
 
         let mut scanline0 = std::ptr::null_mut();
         let mut pitch = 0;
@@ -285,7 +292,13 @@ fn capture_source_collect_available_device_media_types(
     source: &IMFCaptureSource,
 ) -> Vec<MediaType> {
     (0..)
-        .map(|i| unsafe { source.GetAvailableDeviceMediaType(0, i).ok() })
+        .map(|i| {
+            let mut t = None;
+            unsafe {
+                source.GetAvailableDeviceMediaType(0, i, Some(&mut t));
+            }
+            t
+        })
         .take_while(|it| it.is_some())
         .flatten()
         .map(MediaType)
@@ -294,7 +307,7 @@ fn capture_source_collect_available_device_media_types(
 
 impl IMFCaptureEngineOnEventCallback_Impl for CaptureEventCallback {
     #[allow(non_snake_case)]
-    fn OnEvent(&self, event: &Option<IMFMediaEvent>) -> windows::core::Result<()> {
+    fn OnEvent(&self, event: Option<&IMFMediaEvent>) -> windows::core::Result<()> {
         let Some(event) = event else { return Ok(()) };
         let guid = unsafe { event.GetExtendedType().unwrap() };
         let status = unsafe { event.GetStatus().unwrap() };
@@ -313,7 +326,7 @@ impl IMFCaptureEngineOnEventCallback_Impl for CaptureEventCallback {
 
 impl IMFCaptureEngineOnSampleCallback_Impl for CaptureSampleCallback {
     #[allow(non_snake_case)]
-    fn OnSample(&self, sample: &core::option::Option<IMFSample>) -> windows::core::Result<()> {
+    fn OnSample(&self, sample: core::option::Option<&IMFSample>) -> windows::core::Result<()> {
         // if let Some(sample) = sample {
         //     let len = unsafe { sample.GetTotalLength().unwrap() };
         //     let time_us = unsafe { sample.GetSampleTime().unwrap() };
@@ -321,7 +334,7 @@ impl IMFCaptureEngineOnSampleCallback_Impl for CaptureSampleCallback {
         //     let time = std::time::UNIX_EPOCH.elapsed().unwrap().as_millis();
         //     println!("Sample {len} {time_ms} {time}");
         // };
-        self.sample_tx.send(sample.clone()).unwrap();
+        self.sample_tx.send(sample.cloned()).unwrap();
         Ok(())
     }
 }
