@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use std::sync::RwLock;
 
-use crate::InnerCamera;
+use crate::{ CameraInfo, InnerCamera };
 
 pub struct Camera {
     device: RwLock<v4l::Device>,
@@ -90,6 +90,13 @@ impl InnerCamera for Camera {
     fn new_default_device() -> Self {
         let node = enum_devices().into_iter().next().unwrap();
         Self::from_node(&node)
+    }
+
+    fn enumerate_cameras() -> Vec<CameraInfo> {
+        enum_devices()
+            .iter()
+            .map(|d| CameraInfo { device_id: name_or_path(d), label: d.path().to_string_lossy().to_string() })
+            .collect()
     }
 
     fn start(&self) {

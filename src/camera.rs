@@ -77,6 +77,7 @@ pub(crate) trait InnerCamera: std::fmt::Debug {
     type Frame;
 
     fn new_default_device() -> Self;
+    fn enumerate_cameras() -> Vec<CameraInfo>;
     fn start(&self);
     fn stop(&self);
     fn wait_for_frame(&self) -> Option<Self::Frame>;
