@@ -21,9 +21,19 @@ pub struct FrameData<'a> {
     inner: backend::FrameData<'a>,
 }
 
+#[derive(Debug)]
+pub struct CameraInfo {
+    pub device_id: String,
+    pub label: String,
+}
+
 impl Camera {
     pub fn new_default_device() -> Self {
         Self { inner: backend::Camera::new_default_device() }
+    }
+
+    pub fn enumerate_cameras() -> Vec<CameraInfo> {
+        backend::Camera::enumerate_cameras()
     }
 
     pub fn start(&self) {

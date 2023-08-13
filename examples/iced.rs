@@ -7,7 +7,7 @@ use iced::{
     executor, window, Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
-use kamera::Camera;
+use kamera::{Camera, CameraInfo};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -16,6 +16,7 @@ pub fn main() -> iced::Result {
 struct Example {
     radius: [f32; 4],
     border_width: f32,
+    cameras: Vec<CameraInfo>,
     #[allow(unused)]
     end_camera: Sender<()>,
     camera_frame: Receiver<((u32, u32), Vec<u8>)>,
@@ -25,11 +26,6 @@ struct Example {
 #[derive(Debug, Clone, Copy)]
 #[allow(clippy::enum_variant_names)]
 enum Message {
-    RadiusTopLeftChanged(f32),
-    RadiusTopRightChanged(f32),
-    RadiusBottomRightChanged(f32),
-    RadiusBottomLeftChanged(f32),
-    BorderWidthChanged(f32),
     Tick(Instant),
 }
 
@@ -42,7 +38,9 @@ impl Application for Example {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         let (end_camera, end) = channel::<()>();
         let (send_frame, camera_frame) = channel::<((u32, u32), Vec<u8>)>();
+        let (send_cameras, cameras) = channel::<Vec<CameraInfo>>();
         std::thread::spawn(move || {
+            let _ = send_cameras.send(Camera::enumerate_cameras());
             let camera = Camera::new_default_device();
             camera.start();
             let mut keep_going = true;
@@ -61,10 +59,13 @@ impl Application for Example {
             camera.stop();
         });
 
+        let cameras = cameras.recv().expect("enumerate cameras");
+
         (
             Self {
                 radius: [50.0; 4],
                 border_width: 0.0,
+                cameras,
                 end_camera,
                 camera_frame,
                 current_frame: image::Handle::from_pixels(
@@ -89,26 +90,10 @@ impl Application for Example {
         let [tl, tr, br, bl] = self.radius;
 
         match message {
-            Message::Tick(instant) => {
+            Message::Tick(_instant) => {
                 while let Ok(((w, h), pixels)) = self.camera_frame.try_recv() {
                     self.current_frame = image::Handle::from_pixels(w, h, pixels);
-                    println!("frame. {}ms per frame", instant.elapsed().as_millis());
                 }
-            }
-            Message::RadiusTopLeftChanged(radius) => {
-                self.radius = [radius, tr, br, bl];
-            }
-            Message::RadiusTopRightChanged(radius) => {
-                self.radius = [tl, radius, br, bl];
-            }
-            Message::RadiusBottomRightChanged(radius) => {
-                self.radius = [tl, tr, radius, bl];
-            }
-            Message::RadiusBottomLeftChanged(radius) => {
-                self.radius = [tl, tr, br, radius];
-            }
-            Message::BorderWidthChanged(width) => {
-                self.border_width = width;
             }
         }
 
@@ -118,19 +103,15 @@ impl Application for Example {
     fn view(&self) -> Element<Message> {
         let [tl, tr, br, bl] = self.radius;
 
-        let content = column![
-            image(self.current_frame.clone()),
-            text(format!("Radius: {tl:.2}/{tr:.2}/{br:.2}/{bl:.2}")),
-            slider(1.0..=100.0, tl, Message::RadiusTopLeftChanged).step(0.01),
-            slider(1.0..=100.0, tr, Message::RadiusTopRightChanged).step(0.01),
-            slider(1.0..=100.0, br, Message::RadiusBottomRightChanged).step(0.01),
-            slider(1.0..=100.0, bl, Message::RadiusBottomLeftChanged).step(0.01),
-            slider(1.0..=10.0, self.border_width, Message::BorderWidthChanged).step(0.01),
-        ]
-        .padding(20)
-        .spacing(20)
-        .max_width(500)
-        .align_items(Alignment::Center);
+        let mut column = column(Vec::new());
+
+        column = column.push(image(self.current_frame.clone()));
+
+        for camera in self.cameras.iter() {
+            column = column.push(text(&camera.label));
+        }
+
+        let content = column.padding(20).spacing(20).max_width(500).align_items(Alignment::Center);
 
         container(content).width(Length::Fill).height(Length::Fill).center_x().center_y().into()
     }

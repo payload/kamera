@@ -104,3 +104,10 @@ fn change_device() {
     assert!(camera.wait_for_frame().is_some());
     assert!(camera.wait_for_frame().is_some());
 }
+
+#[test]
+fn enumerate_cameras() {
+    let camera_infos = Camera::enumerate_cameras();
+    dbg!(&camera_infos);
+    assert!(camera_infos.len() > 0);
+}

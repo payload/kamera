@@ -1,3 +1,5 @@
+use crate::CameraInfo;
+
 use super::mf::*;
 
 use std::{sync::mpsc::*, time::Duration};
@@ -44,6 +46,16 @@ impl Camera {
         camera.wait_for_event(CaptureEngineEvent::Initialized);
         camera.prepare_source_sink();
         camera
+    }
+
+    pub fn enumerate_cameras() -> Vec<CameraInfo> {
+        Device::enum_devices()
+            .into_iter()
+            .map(|d| CameraInfo {
+                device_id: d.id().to_string_lossy().to_string(),
+                label: d.name(),
+            })
+            .collect()
     }
 
     pub fn start(&self) {
