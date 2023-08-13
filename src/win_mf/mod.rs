@@ -1,7 +1,7 @@
 mod attributes;
 mod camera;
 mod media_type;
-pub mod mf;
+mod mf;
 mod source_reader_flag;
 #[cfg(test)]
 mod tests;
