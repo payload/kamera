@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use std::sync::RwLock;
 
-use crate::{ CameraInfo, InnerCamera };
+use crate::{CameraInfo, InnerCamera};
 
 pub struct Camera {
     device: RwLock<v4l::Device>,
@@ -95,7 +95,10 @@ impl InnerCamera for Camera {
     fn enumerate_cameras() -> Vec<CameraInfo> {
         enum_devices()
             .iter()
-            .map(|d| CameraInfo { device_id: name_or_path(d), label: d.path().to_string_lossy().to_string() })
+            .map(|d| CameraInfo {
+                device_id: name_or_path(d),
+                label: d.path().to_string_lossy().to_string(),
+            })
             .collect()
     }
 
@@ -120,7 +123,7 @@ impl InnerCamera for Camera {
             let data = match &format.fourcc.repr {
                 b"RGB3" => buf.to_vec(),
                 b"YUYV" => yuyv_to_rgb32(buf, size.0, size.1),
-                b"MJPG" => todo!("NJPG not implemented"),
+                b"MJPG" => mjpeg_to_rgb32(buf, size.0, size.1),
                 _ => panic!("invalid buffer pixelformat"),
             };
 
@@ -205,4 +208,10 @@ fn yuyv_to_rgb32(buf: &[u8], w: u32, h: u32) -> Vec<u8> {
     rgb.convert(&mut rgba);
 
     rgba.into_buf()
+}
+
+fn mjpeg_to_rgb32(buf: &[u8], w: u32, h: u32) -> Vec<u8> {
+    let jpeg = mozjpeg::Decompress::new_mem(buf).unwrap();
+    let mut decompress = jpeg.rgba().unwrap();
+    decompress.read_scanlines_flat().unwrap()
 }

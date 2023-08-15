@@ -35,8 +35,10 @@ windows = { version = "0.48", features = [
 v4l = "0.14"
 ffimage = "0.9"
 ffimage_yuv = "0.9"
+mozjpeg = "0.9"
 
 [dev-dependencies]
 softbuffer = "0.3"
 winit = "0.28"
 iced = { version = "0.10", features = ["advanced", "image"] }
+
