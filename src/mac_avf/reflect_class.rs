@@ -1,8 +1,8 @@
 use super::*;
 
-use objc2::runtime::Class;
+use objc2::runtime::AnyClass;
 
-fn reflect_class(cls: &Class) -> Result<String, std::fmt::Error> {
+fn reflect_class(cls: &AnyClass) -> Result<String, std::fmt::Error> {
     use std::fmt::Write;
     let mut reflection = String::new();
     let s = &mut reflection;
