@@ -14,9 +14,11 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
+    camera: Camera,
     cameras: Vec<CameraInfo>,
     #[allow(unused)]
     end_camera: Sender<()>,
+    send_frame: Sender<((u32, u32), Vec<u8>)>,
     camera_frame: Receiver<((u32, u32), Vec<u8>)>,
     current_frame: image::Handle,
 }
@@ -37,32 +39,21 @@ impl Application for Example {
         let (end_camera, end) = channel::<()>();
         let (send_frame, camera_frame) = channel::<((u32, u32), Vec<u8>)>();
         let (send_cameras, cameras) = channel::<Vec<CameraInfo>>();
-        std::thread::spawn(move || {
+        // std::thread::spawn(move || {
             let _ = send_cameras.send(Camera::enumerate_cameras());
             let camera = Camera::new_default_device();
             camera.start();
-            let mut keep_going = true;
-            while keep_going {
-                if Err(TryRecvError::Empty) != end.try_recv() {
-                    keep_going = false;
-                }
-                if let Some(frame) = camera.wait_for_frame() {
-                    let size = frame.size_u32();
-                    let pixels = frame.data().data_u8().to_vec();
-                    if send_frame.send((size, pixels)).is_err() {
-                        keep_going = false;
-                    }
-                }
-            }
-            camera.stop();
-        });
+            
+        // });
 
         let cameras = cameras.recv().expect("enumerate cameras");
 
         (
             Self {
+                camera,
                 cameras,
                 end_camera,
+                send_frame,
                 camera_frame,
                 current_frame: image::Handle::from_pixels(
                     16,
@@ -85,6 +76,14 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(_instant) => {
+                if let Some(frame) = self.camera.wait_for_frame() {
+                    let size = frame.size_u32();
+                    let pixels = frame.data().data_u8().to_vec();
+                    if self.send_frame.send((size, pixels)).is_err() {
+                        
+                    }
+                }
+
                 while let Ok(((w, h), pixels)) = self.camera_frame.try_recv() {
                     self.current_frame = image::Handle::from_pixels(w, h, pixels);
                 }
@@ -103,7 +102,7 @@ impl Application for Example {
             column = column.push(text(&camera.label));
         }
 
-        let content = column.padding(20).spacing(20).max_width(500).align_items(Alignment::Center);
+        let content = column.padding(20).spacing(20).align_items(Alignment::Start);
 
         container(content).width(Length::Fill).height(Length::Fill).center_x().center_y().into()
     }
