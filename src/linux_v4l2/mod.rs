@@ -123,7 +123,7 @@ impl InnerCamera for Camera {
             let data = match &format.fourcc.repr {
                 b"RGB3" => buf.to_vec(),
                 b"YUYV" => yuyv_to_rgb32(buf, size.0, size.1),
-                b"MJPG" => mjpeg_to_rgb32(buf, size.0, size.1),
+                b"MJPG" => mjpeg_to_rgb32(buf),
                 _ => panic!("invalid buffer pixelformat"),
             };
 
@@ -210,7 +210,7 @@ fn yuyv_to_rgb32(buf: &[u8], w: u32, h: u32) -> Vec<u8> {
     rgba.into_buf()
 }
 
-fn mjpeg_to_rgb32(buf: &[u8], w: u32, h: u32) -> Vec<u8> {
+fn mjpeg_to_rgb32(buf: &[u8]) -> Vec<u8> {
     let jpeg = mozjpeg::Decompress::new_mem(buf).unwrap();
     let mut decompress = jpeg.rgba().unwrap();
     decompress.read_scanlines_flat().unwrap()
