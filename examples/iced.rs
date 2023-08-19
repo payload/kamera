@@ -2,7 +2,7 @@ use std::iter::repeat;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::time::Instant;
 
-use iced::widget::{column, container, image, slider, text};
+use iced::widget::{column, container, image, text};
 use iced::{
     executor, window, Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
@@ -14,8 +14,6 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    radius: [f32; 4],
-    border_width: f32,
     cameras: Vec<CameraInfo>,
     #[allow(unused)]
     end_camera: Sender<()>,
@@ -63,8 +61,6 @@ impl Application for Example {
 
         (
             Self {
-                radius: [50.0; 4],
-                border_width: 0.0,
                 cameras,
                 end_camera,
                 camera_frame,
@@ -87,8 +83,6 @@ impl Application for Example {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        let [tl, tr, br, bl] = self.radius;
-
         match message {
             Message::Tick(_instant) => {
                 while let Ok(((w, h), pixels)) = self.camera_frame.try_recv() {
@@ -101,8 +95,6 @@ impl Application for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let [tl, tr, br, bl] = self.radius;
-
         let mut column = column(Vec::new());
 
         column = column.push(image(self.current_frame.clone()));

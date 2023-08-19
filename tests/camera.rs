@@ -109,5 +109,5 @@ fn change_device() {
 fn enumerate_cameras() {
     let camera_infos = Camera::enumerate_cameras();
     dbg!(&camera_infos);
-    assert!(camera_infos.len() > 0);
+    assert!(!camera_infos.is_empty());
 }
