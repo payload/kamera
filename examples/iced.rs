@@ -3,8 +3,7 @@ use std::time::Instant;
 
 use iced::widget::{column, container, image, text};
 use iced::{
-    executor, window, Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
+    executor, window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 use kamera::{CameraInfo, CameraOnThread};
 
@@ -70,17 +69,14 @@ impl Application for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let mut column = column(Vec::new());
-
-        column = column.push(image(self.current_frame.clone()));
-
-        for camera in self.cameras.iter() {
-            column = column.push(text(&camera.label));
-        }
-
-        let content = column.padding(20).spacing(20).align_items(Alignment::Start);
-
-        container(content).width(Length::Fill).height(Length::Fill).center_x().center_y().into()
+        let camera_frame = image(self.current_frame.clone());
+        let camera_label = text(self.cameras.get(0).map(|c| c.label.clone()).unwrap_or_default());
+        container(column!(camera_frame, camera_label))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .into()
     }
 }
 
