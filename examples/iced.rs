@@ -61,6 +61,7 @@ impl Application for Example {
         match message {
             Message::Tick(_instant) => {
                 if let Some(((w, h), pixels)) = self.camera.wait_for_frame() {
+                    let pixels = rgba_to_bgra(w, h, &pixels);
                     self.current_frame = image::Handle::from_pixels(w, h, pixels);
                 }
             }
@@ -82,4 +83,14 @@ impl Application for Example {
 
         container(content).width(Length::Fill).height(Length::Fill).center_x().center_y().into()
     }
+}
+
+fn rgba_to_bgra(w: u32, h: u32, pixels: &[u8]) -> Vec<u8> {
+    use ffimage::color::*;
+    use ffimage::packed::*;
+    use ffimage::traits::Convert;
+    let a = ImageView::<Rgba<u8>>::from_buf(pixels, w, h).unwrap();
+    let mut b = ImageBuffer::<Bgra<u8>>::new(w, h, 0u8);
+    a.convert(&mut b);
+    b.into_buf()
 }

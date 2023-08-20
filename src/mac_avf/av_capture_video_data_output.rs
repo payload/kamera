@@ -38,6 +38,9 @@ extern_methods! {
         #[method(setVideoSettings:)]
         pub fn set_video_settings(&self, settings: &NSDictionary<NSString, NSNumber>);
 
+        #[method_id(@__retain_semantics Other availableVideoCVPixelFormatTypes)]
+        pub fn available_video_cvpixel_format_types(&self) -> Id<NSArray<NSNumber>>;
+
         // #[method(setSampleBufferDelegate:queue:)]
         // fn set_sample_buffer_delegate(&mut self, delegate: &NSObject, queue: DispatchQueueT);
     }

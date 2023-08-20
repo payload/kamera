@@ -41,4 +41,4 @@ mozjpeg = "0.9"
 softbuffer = "0.3"
 winit = "0.28"
 iced = { version = "0.10", features = ["advanced", "image"] }
-
+ffimage = "0.9"
