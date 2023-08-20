@@ -1,5 +1,5 @@
 use std::iter::repeat;
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Instant;
 
 use iced::widget::{column, container, image, text};
@@ -7,19 +7,15 @@ use iced::{
     executor, window, Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
-use kamera::{Camera, CameraInfo};
+use kamera::{Camera, CameraInfo, CameraOnThread};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 
 struct Example {
-    camera: Camera,
+    camera: CameraOnThread,
     cameras: Vec<CameraInfo>,
-    #[allow(unused)]
-    end_camera: Sender<()>,
-    send_frame: Sender<((u32, u32), Vec<u8>)>,
-    camera_frame: Receiver<((u32, u32), Vec<u8>)>,
     current_frame: image::Handle,
 }
 
@@ -36,25 +32,14 @@ impl Application for Example {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        let (end_camera, end) = channel::<()>();
-        let (send_frame, camera_frame) = channel::<((u32, u32), Vec<u8>)>();
-        let (send_cameras, cameras) = channel::<Vec<CameraInfo>>();
-        // std::thread::spawn(move || {
-            let _ = send_cameras.send(Camera::enumerate_cameras());
-            let camera = Camera::new_default_device();
-            camera.start();
-            
-        // });
-
-        let cameras = cameras.recv().expect("enumerate cameras");
+        let camera = CameraOnThread::new_default_device();
+        let cameras = CameraOnThread::enumerate_cameras();
+        camera.start();
 
         (
             Self {
                 camera,
                 cameras,
-                end_camera,
-                send_frame,
-                camera_frame,
                 current_frame: image::Handle::from_pixels(
                     16,
                     16,
@@ -76,15 +61,7 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(_instant) => {
-                if let Some(frame) = self.camera.wait_for_frame() {
-                    let size = frame.size_u32();
-                    let pixels = frame.data().data_u8().to_vec();
-                    if self.send_frame.send((size, pixels)).is_err() {
-                        
-                    }
-                }
-
-                while let Ok(((w, h), pixels)) = self.camera_frame.try_recv() {
+                if let Some(((w, h), pixels)) = self.camera.wait_for_frame() {
                     self.current_frame = image::Handle::from_pixels(w, h, pixels);
                 }
             }

@@ -1,6 +1,9 @@
 mod camera;
 pub use camera::*;
 
+mod camera_on_thread;
+pub use camera_on_thread::*;
+
 #[cfg(target_os = "macos")]
 pub(crate) mod mac_avf;
 
