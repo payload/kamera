@@ -35,18 +35,17 @@ impl Application for Example {
         let cameras = CameraOnThread::enumerate_cameras();
         camera.start();
 
-        (
-            Self {
-                camera,
-                cameras,
-                current_frame: image::Handle::from_pixels(
-                    16,
-                    16,
-                    Vec::from_iter(repeat([0, 0, 0, 0]).take(16 * 16).flatten()),
-                ),
-            },
-            Command::none(),
-        )
+        let app = Self {
+            camera,
+            cameras,
+            current_frame: image::Handle::from_pixels(
+                16,
+                16,
+                Vec::from_iter(repeat([0, 0, 0, 0]).take(16 * 16).flatten()),
+            ),
+        };
+
+        (app, Command::none())
     }
 
     fn title(&self) -> String {
