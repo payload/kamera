@@ -1,5 +1,4 @@
 use std::iter::repeat;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Instant;
 
 use iced::widget::{column, container, image, text};
@@ -7,7 +6,7 @@ use iced::{
     executor, window, Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
-use kamera::{Camera, CameraInfo, CameraOnThread};
+use kamera::{CameraInfo, CameraOnThread};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
