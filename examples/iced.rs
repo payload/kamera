@@ -3,7 +3,8 @@ use std::time::Instant;
 
 use iced::widget::{column, container, image, text};
 use iced::{
-    executor, window, Application, Command, Element, Length, Settings, Subscription, Theme,
+    executor, subscription, window, Application, Command, Element, Event, Length, Settings,
+    Subscription, Theme,
 };
 use kamera::{CameraInfo, CameraOnThread};
 
@@ -17,10 +18,11 @@ struct Example {
     current_frame: image::Handle,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[allow(clippy::enum_variant_names)]
 enum Message {
     Tick(Instant),
+    Event(Event),
 }
 
 impl Application for Example {
@@ -52,7 +54,10 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        window::frames().map(Message::Tick)
+        Subscription::batch(
+            [subscription::events().map(Message::Event), window::frames().map(Message::Tick)]
+                .into_iter(),
+        )
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -63,6 +68,12 @@ impl Application for Example {
                     self.current_frame = image::Handle::from_pixels(w, h, pixels);
                 }
             }
+            Message::Event(iced::event::Event::Mouse(mouse_event)) => {
+                if let iced::mouse::Event::ButtonPressed(_) = mouse_event {
+                    self.camera.change_device();
+                }
+            }
+            _ => {}
         }
 
         Command::none()
