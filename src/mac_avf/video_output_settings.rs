@@ -20,12 +20,7 @@ pub fn video_settings_rgb24() -> Id<NSMutableDictionary<NSString, NSNumber>> {
 fn str_to_u32(string: &str) -> u32 {
     assert_eq!(4, string.len());
     let bytes = string.as_bytes();
-    let a = bytes[0];
-    let b = bytes[1];
-    let c = bytes[2];
-    let d = bytes[3];
-
-    unsafe { std::mem::transmute::<[u8; 4], u32>([a, b, c, d]) }
+    u32::from_ne_bytes(bytes[0..4].try_into().unwrap())
 }
 
 fn video_settings_with_pixel_format(
