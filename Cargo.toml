@@ -41,3 +41,16 @@ winit = "0.27.5"
 [dependencies]
 ffimage = "0.9.0"
 ffimage_yuv = "0.9.0"
+log = "0.4.20"
+
+[profile.test]
+opt-level=3
+#debug = false
+#split-debuginfo = '...'  # Platform-specific.
+#debug-assertions = false
+#overflow-checks = false
+#lto = false
+#panic = 'unwind'
+#incremental = false
+#codegen-units = 16
+#rpath = false
